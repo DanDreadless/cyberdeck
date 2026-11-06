@@ -98,6 +98,15 @@ cyberdeck doctor                  # check VPN, tools, wordlists, sudo and clock;
 cyberdeck                         # open the TUI
 ```
 
+Cyberdeck opens on your box list: every box with its IP, when you last worked on it, and how
+far you got (ports, versions, UDP, hosts file, user and root flags).
+
+<div align="center">
+
+![The box list](assets/screenshots/boxes.png)
+
+</div>
+
 In the TUI, press `n` for a new box and give it a name and IP. Cyberdeck checks that the box is
 routed through your VPN, then offers the nmap stages (you approve each one in the Run dialog).
 From there, work the box as usual and use the dashboard to keep track and decide what's next:
