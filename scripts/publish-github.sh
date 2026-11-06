@@ -9,7 +9,8 @@
 # How: each new commit on SOURCE (default main) is copied onto `github-main` with the private
 # paths taken out of its tree, keeping the author, date and message plus a "Source-Commit:"
 # trailer. The next run starts after the last Source-Commit, so it is incremental and
-# repeatable. Commits that only touched private paths are skipped. Merge commits are copied as
+# repeatable. Commits that only touched private paths are skipped. If GitHub has commits of
+# its own (edited on the website), the script stops and says how to build on top of them. Merge commits are copied as
 # plain commits (GitHub's history is linear).
 #
 # Env: SOURCE (default main), BRANCH (default github-main), REMOTE (default github).
@@ -26,10 +27,23 @@ cd "$(dirname "$0")/.."
 
 git rev-parse --verify -q "$source_ref" >/dev/null || { echo "no branch $source_ref" >&2; exit 1; }
 
+# Commits made on GitHub itself (a web edit) must be on the branch before adding to it.
+if git remote get-url "$remote" >/dev/null 2>&1 && git fetch -q "$remote" main 2>/dev/null; then
+  if git rev-parse -q --verify "refs/heads/$branch" >/dev/null &&
+     ! git merge-base --is-ancestor FETCH_HEAD "$branch"; then
+    echo "$remote/main has commits that $branch doesn't (an edit made on GitHub?):" >&2
+    git log --oneline "$branch..FETCH_HEAD" >&2
+    echo "Copy the change into main (on Kali) if you want to keep it, then build on top of it:" >&2
+    echo "  git branch -f $branch FETCH_HEAD && bash scripts/publish-github.sh --push" >&2
+    exit 1
+  fi
+fi
+
 tip="$(git rev-parse -q --verify "refs/heads/$branch" || true)"
 last=""
 if [[ -n "$tip" ]]; then
-  last="$(git log -1 --format=%B "$tip" | sed -n 's/^Source-Commit: //p' | tail -1)"
+  # The newest Source-Commit anywhere in the branch (GitHub web edits don't carry one).
+  last="$(git log --format=%B "$tip" | sed -n 's/^Source-Commit: //p' | head -1)"
 fi
 range="$source_ref"
 [[ -n "$last" ]] && range="$last..$source_ref"
