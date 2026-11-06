@@ -1,0 +1,76 @@
+id: cewl
+name: CeWL
+description: Build a password/username wordlist from the words on a website
+category: creds
+safety: safe
+detect:
+  binary: cewl
+  apt: cewl
+  version_cmd: ["cewl", "--help"]
+  version_regex: 'CeWL (\S+)'
+  help_cmd: ["cewl", "--help"]
+inputs:
+  url:
+    from: web_url
+    label: URL
+    help: "Site to spider. Use the hostname once it is in /etc/hosts."
+options:
+  - id: depth
+    flag: -d
+    type: int
+    default: 2
+    label: Spider depth (-d)
+    help: "How many links deep to follow from the start page."
+  - id: min_length
+    flag: -m
+    type: int
+    default: 5
+    label: Minimum word length (-m)
+    help: "Shorter words are left out (passwords are rarely under 5 characters)."
+  - id: lowercase
+    flag: --lowercase
+    type: bool
+    default: false
+    label: Lowercase words
+    help: "Lowercase everything (smaller list; use hashcat/john rules for case variants)."
+  - id: with_numbers
+    flag: --with-numbers
+    type: bool
+    default: true
+    label: Keep words with numbers
+    help: "Also keep words such as 'admin2024'."
+  - id: emails
+    flag: --email_file
+    type: string
+    default: "{out}/cewl-emails.txt"
+    label: E-mail output file
+    help: "Also collect e-mail addresses (usernames) into this file. Clear it to skip."
+    advanced: true
+  - id: user_agent
+    flag: --ua
+    type: string
+    label: User-Agent
+    help: "Custom User-Agent string."
+    advanced: true
+presets:
+  quick: { depth: 1 }
+  deep: { depth: 3, min_length: 4 }
+command:
+  - cewl
+  - "{opt.depth}"
+  - "{opt.min_length}"
+  - "{opt.lowercase}"
+  - "{opt.with_numbers}"
+  - -e
+  - "{opt.emails}"
+  - "{opt.user_agent}"
+  - -w
+  - "{out}/cewl.txt"
+  - "{extra}"
+  - "{url}"
+timeout: 900
+outputs:
+  - path: "{out}/cewl.txt"
+parser: none
+notes: "Writes a wordlist to the job folder (raw/cewl-*/cewl.txt); use it with hydra, hashcat or john."
+learn: https://www.kali.org/tools/cewl/

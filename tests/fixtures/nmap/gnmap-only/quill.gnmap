@@ -1,0 +1,4 @@
+# Nmap 7.95 scan initiated Wed Nov  4 15:00:00 2026 as: nmap -sV -oG quill.gnmap 10.129.80.3
+Host: 10.129.80.3 (quill.htb)	Status: Up
+Host: 10.129.80.3 (quill.htb)	Ports: 22/open/tcp//ssh//OpenSSH 9.6p1 Ubuntu 3ubuntu13.5 (Ubuntu Linux; protocol 2.0)/, 443/open/tcp//ssl|http//nginx 1.24.0 (Ubuntu)/, 3306/filtered/tcp//mysql///, 8000/open/tcp//http//Werkzeug httpd 3.0.1 (Python 3.12.3)/	Ignored State: closed (996)
+# Nmap done at Wed Nov  4 15:00:40 2026 -- 1 IP address (1 host up) scanned in 40.00 seconds

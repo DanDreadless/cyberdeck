@@ -1,0 +1,75 @@
+id: dirsearch
+name: dirsearch
+description: Web path scanner with sensible built-in defaults
+category: web
+group: dir-bruteforce
+rank: 30
+safety: safe
+detect:
+  binary: dirsearch
+  version_cmd: ["dirsearch", "--version"]
+  version_regex: 'dirsearch v(\S+)'
+  help_cmd: ["dirsearch", "--help"]
+  apt: dirsearch
+inputs:
+  url:
+    from: web_url
+    label: URL
+    help: "Where to scan."
+options:
+  - id: wordlist
+    flag: -w
+    type: wordlist
+    default: "{wordlists.dirs_medium}"
+    label: Wordlist
+    help: "Names to try. Clear it to use dirsearch's own list."
+  - id: extensions
+    flag: -e
+    type: string
+    default: "php,txt"
+    label: Extensions
+    help: "Extensions to try. Pre-filled when PHP was fingerprinted."
+    when: { software: [php] }
+  - id: recursive
+    flag: -r
+    type: bool
+    default: false
+    label: Recursive (-r)
+    help: "Also scan inside directories it finds."
+  - id: threads
+    flag: -t
+    type: int
+    default: 25
+    label: Threads
+    advanced: true
+    help: "Concurrent requests."
+presets:
+  quick: { wordlist: "{wordlists.dirs_small}" }
+  thorough: { recursive: true }
+command:
+  - dirsearch
+  - -u
+  - "{url}"
+  - "{opt.wordlist}"
+  - "{opt.extensions}"
+  - "{opt.recursive}"
+  - "{opt.threads}"
+  - -O
+  - json
+  - -o
+  - "{out}/dirsearch.json"
+  - -q
+  - --no-color
+  - "{extra}"
+timeout: 1800
+outputs:
+  - path: "{out}/dirsearch.json"
+parser: dirsearch_json
+learn: https://book.hacktricks.xyz/network-services-pentesting/pentesting-web#brute-force-directories-and-files
+teach:
+  does: >
+    Asks the site for common paths and files, with sensible extensions built in
+    ([[directory-bruteforce|directory brute-forcing]]).
+  look_for: >
+    Pages that answer 200, [[redirect|redirects]] to a login, 403 folders, and backup or
+    config files (.bak, .old, .zip, .env).

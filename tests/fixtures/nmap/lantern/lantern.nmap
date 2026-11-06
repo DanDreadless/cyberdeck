@@ -1,0 +1,3 @@
+# Nmap 7.95 scan initiated ... (normal output, ignored by Cyberdeck)
+PORT   STATE SERVICE
+22/tcp open  ssh

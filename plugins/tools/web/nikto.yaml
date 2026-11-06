@@ -1,0 +1,67 @@
+id: nikto
+name: Nikto
+description: Web server scanner (outdated software, risky files, misconfigurations). Noisy.
+category: web
+group: web-vuln-scan
+safety: intrusive
+detect:
+  binary: nikto
+  version_cmd: ["nikto", "-Version"]
+  version_regex: 'Nikto (\S+)'
+  help_cmd: ["nikto", "-H"]
+  apt: nikto
+inputs:
+  url:
+    from: web_url
+    label: URL
+    help: "Site to scan."
+options:
+  - id: maxtime
+    flag: -maxtime
+    type: string
+    default: "15m"
+    label: Max time
+    help: "Stop after this long (e.g. 10m). Nikto can run for a very long time."
+  - id: tuning
+    flag: -Tuning
+    type: string
+    label: Tuning
+    advanced: true
+    help: "Test classes to run, e.g. 123b (see nikto -H)."
+presets:
+  quick: { maxtime: "5m" }
+command:
+  - nikto
+  - -h
+  - "{url}"
+  - "{opt.maxtime}"
+  - "{opt.tuning}"
+  - -Format
+  - txt
+  - -o
+  - "{out}/nikto.txt"
+  - -nointeractive
+  - "{extra}"
+timeout: 3600
+outputs:
+  - path: "{out}/nikto.txt"
+parser: lines_regex
+parser_config:
+  patterns:
+    - regex: '^\+ [A-Z]+ (?P<name>[A-Za-z][\w.-]*)/(?P<version>\d[\w.-]*) appears to be outdated'
+      type: software
+      set: { where: "{url}" }
+      tags: [outdated]
+      confidence: 0.7
+    - regex: '^\+ (?P<title>.*?\b(?P<id>CVE-\d{4}-\d+)\b.*)$'
+      type: vuln
+      set: { where: "{url}" }
+      confidence: 0.5
+learn: https://book.hacktricks.xyz/network-services-pentesting/pentesting-web
+teach:
+  does: >
+    Checks the web server for thousands of known risky files, old versions and
+    misconfigurations. Loud and slow, so it's tagged [[safety-tags|intrusive]].
+  look_for: >
+    Outdated server versions, interesting files it found (backups, admin pages, phpinfo), and
+    missing security headers (rarely the way in on HTB).

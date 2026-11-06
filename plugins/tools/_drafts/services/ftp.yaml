@@ -1,0 +1,39 @@
+id: ftp
+name: ftp
+description: FTP client
+category: services
+safety: intrusive
+detect:
+  binary: ftp
+  version_cmd:
+  - ftp
+  - --version
+  help_cmd:
+  - ftp
+  - --help
+  apt: tnftp
+inputs:
+  target:
+    from: host
+    label: Target
+    help: Authorized CTF/lab host or address.
+options:
+- id: port
+  type: int
+  default: 21
+  label: Port
+  help: Service port.
+- id: user
+  type: string
+  default: ''
+  label: Username
+  help: Account name.
+command:
+- ftp
+- '{target}'
+- '{extra}'
+timeout: 900
+outputs: []
+learn: https://www.kali.org/tools/ftp/
+notes: Interactive or context-dependent utility. Review the generated invocation and
+  run manually in the authorized lab; do not assume unattended execution.

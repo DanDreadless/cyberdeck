@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<?xml-stylesheet href="file:///usr/share/nmap/nmap.xsl" type="text/xsl"?>
+<!-- Fictional box "lantern" (Linux web). Stage 1: all TCP ports. -->
+<nmaprun scanner="nmap" args="nmap -p- --min-rate 5000 -Pn -T4 --reason -oA nmap/lantern-allports 10.129.231.15" start="1793872800" startstr="Wed Nov  4 10:00:00 2026" version="7.95" xmloutputversion="1.05">
+<scaninfo type="syn" protocol="tcp" numservices="65535" services="1-65535"/>
+<verbose level="0"/>
+<debugging level="0"/>
+<host starttime="1793872801" endtime="1793872814"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.129.231.15" addrtype="ipv4"/>
+<hostnames>
+</hostnames>
+<ports><extraports state="closed" count="65532">
+<extrareasons reason="reset" count="65532" proto="tcp"/>
+</extraports>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="ssh" method="table" conf="3"/></port>
+<port protocol="tcp" portid="80"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="http" method="table" conf="3"/></port>
+<port protocol="tcp" portid="9091"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="xmltec-xmlmail" method="table" conf="3"/></port>
+</ports>
+<times srtt="9100" rttvar="1300" to="100000"/>
+</host>
+<runstats><finished time="1793872814" timestr="Wed Nov  4 10:00:14 2026" summary="Nmap done at Wed Nov  4 10:00:14 2026; 1 IP address (1 host up) scanned in 13.52 seconds" elapsed="13.52" exit="success"/><hosts up="1" down="0" total="1"/>
+</runstats>
+</nmaprun>

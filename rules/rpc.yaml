@@ -1,0 +1,67 @@
+# RPC rules: Windows MS-RPC (msrpc on 135 + named pipes over SMB) and Unix ONC RPC (rpcbind on
+# 111). Both are `kind: rpc` (plugins/services.yaml); nmap's name tells them apart. Format:
+# docs/RULES.md.
+- id: rpc.endpoints
+  phase: enumeration
+  when:
+    finding: service
+    match: { kind: rpc, name: msrpc, port: 135 }
+  suggest:
+    tool: impacket-rpcdump
+    with: { target: "{target.ip}" }
+  title: "List the RPC interfaces exposed on {target.ip}:135"
+  why: >
+    The endpoint mapper answers anonymously and lists every [[rpc|RPC]] interface the host offers. The
+    Print Spooler (MS-RPRN) or EFSRPC (MS-EFSR) being reachable points at PrintNightmare and
+    coercion attacks; the list also confirms you are looking at a DC or a member server.
+  learn: https://book.hacktricks.xyz/network-services-pentesting/135-pentesting-msrpc
+  priority: 60
+
+- id: rpc.null-session
+  phase: enumeration
+  requires_state: { kinds: [smb] }
+  when:
+    finding: service
+    match: { kind: rpc, name: msrpc }
+  suggest:
+    tool: rpcclient-enum
+    with: { target: "{target.ip}", auth: "null" }
+  title: "Try an anonymous RPC session on {target.ip} (users, groups, password policy)"
+  why: >
+    rpcclient talks MS-RPC over SMB. If the host allows a [[null-session|null session]] it hands out the user
+    list, groups and the password policy (lockout threshold before any spraying), and
+    querydispinfo shows account descriptions, where admins often leave passwords.
+  learn: https://book.hacktricks.xyz/network-services-pentesting/pentesting-smb/rpcclient-enumeration
+  priority: 65
+
+- id: rpc.rid-brute
+  phase: enumeration
+  requires_state: { kinds: [smb] }
+  when:
+    finding: service
+    match: { kind: rpc, name: msrpc }
+  suggest:
+    tool: impacket-lookupsid
+    with: { target: "{target.ip}", login: guest }
+  title: "Brute-force RIDs on {target.ip} as guest to list users"
+  why: >
+    When enumdomusers is denied, LSARPC often still resolves SIDs for the guest account.
+    Walking RIDs 500-4000 gives the domain's real usernames, the input for [[kerberos|AS-REP roasting]] and
+    password spraying.
+  learn: https://book.hacktricks.xyz/network-services-pentesting/pentesting-smb#enumerate-users
+  priority: 55
+
+- id: rpc.rpcbind
+  phase: enumeration
+  when:
+    finding: service
+    match: { kind: rpc, name: rpcbind }
+  suggest:
+    tool: rpcinfo
+    with: { target: "{target.ip}" }
+  title: "List the ONC RPC programs registered on {target.ip}:111"
+  why: >
+    rpcbind maps RPC programs to ports. nfs and mountd in the list mean [[nfs|NFS]] shares to look at;
+    other programs (nis, rstatd) are rare but usually interesting.
+  learn: https://book.hacktricks.xyz/network-services-pentesting/pentesting-rpcbind
+  priority: 60

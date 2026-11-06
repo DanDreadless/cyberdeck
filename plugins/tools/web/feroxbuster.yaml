@@ -1,0 +1,96 @@
+id: feroxbuster
+name: feroxbuster
+description: Fast recursive content discovery (hidden directories and files)
+category: web
+group: dir-bruteforce
+rank: 10
+safety: safe
+detect:
+  binary: feroxbuster
+  version_cmd: ["feroxbuster", "--version"]
+  version_regex: 'feroxbuster (\S+)'
+  help_cmd: ["feroxbuster", "--help"]
+  apt: feroxbuster
+inputs:
+  url:
+    from: web_url
+    label: URL
+    help: "Where to start. Use the hostname (not the IP) once it is in /etc/hosts."
+options:
+  - id: wordlist
+    flag: -w
+    type: wordlist
+    default: "{wordlists.dirs_medium}"
+    label: Wordlist
+    help: "Names to try. Tip: {wordlists.dirs_small} is quicker."
+  - id: extensions
+    flag: -x
+    type: string
+    default: "php,txt"
+    label: Extensions
+    help: "Also try each word with these extensions. Pre-filled when PHP was fingerprinted."
+    when: { software: [php] }
+  - id: depth
+    flag: --depth
+    type: int
+    default: 2
+    label: Recursion depth
+    help: "How many directory levels deep to recurse. Higher = slower but more thorough."
+  - id: insecure
+    flag: -k
+    type: bool
+    default: true
+    label: Ignore TLS errors (-k)
+    help: "HTB certificates are self-signed."
+  - id: threads
+    flag: -t
+    type: int
+    default: 50
+    label: Threads
+    advanced: true
+    help: "Concurrent requests. Lower it if the box or VPN struggles."
+  - id: backups
+    flag: -B
+    type: bool
+    default: false
+    label: Look for backups (-B)
+    advanced: true
+    help: "For every file found, also request .bak, .old, ~ copies."
+  - id: rate_limit
+    flag: --rate-limit
+    type: int
+    label: Rate limit
+    advanced: true
+    help: "Max requests per second per directory."
+presets:
+  quick: { wordlist: "{wordlists.dirs_small}", depth: 1 }
+  thorough: { depth: 3, extensions: "php,txt,html,bak,zip,old", backups: true }
+command:
+  - feroxbuster
+  - -u
+  - "{url}"
+  - "{opt.wordlist}"
+  - "{opt.extensions}"
+  - "{opt.depth}"
+  - "{opt.insecure}"
+  - "{opt.threads}"
+  - "{opt.backups}"
+  - "{opt.rate_limit}"
+  - --json
+  - -o
+  - "{out}/ferox.json"
+  - --no-state
+  - -q
+  - "{extra}"
+timeout: 1800
+outputs:
+  - path: "{out}/ferox.json"
+parser: feroxbuster_json
+learn: https://book.hacktricks.xyz/network-services-pentesting/pentesting-web#brute-force-directories-and-files
+teach:
+  does: >
+    Asks the site for thousands of likely paths from a [[wordlist]] and digs into every folder
+    it finds ([[directory-bruteforce|directory brute-forcing]]).
+  look_for: >
+    200 pages nobody links to, 301/302 [[redirect|redirects]] to a login, and 403 (exists but
+    forbidden). Names like admin, backup, dev, upload, api and .git are worth a look first.

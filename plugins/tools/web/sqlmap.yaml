@@ -1,0 +1,95 @@
+id: sqlmap
+name: sqlmap
+description: Test a URL or form for SQL injection and dump what it can reach
+category: web
+safety: exploit
+detect:
+  binary: sqlmap
+  apt: sqlmap
+  version_cmd: ["sqlmap", "--version"]
+  version_regex: '(\d[\w.]*)'
+  help_cmd: ["sqlmap", "-h"]
+inputs:
+  url:
+    from: web_url
+    label: URL
+    help: "Page with the parameter to test, e.g. http://box.htb/item.php?id=1 (or the form page with Forms on)."
+options:
+  - id: data
+    flag: --data
+    type: string
+    label: POST data (--data)
+    help: "Body of a POST request, e.g. user=admin&pass=x. Mark the spot to test with * if you like."
+  - id: forms
+    flag: --forms
+    type: bool
+    default: false
+    label: Test forms on the page (--forms)
+    help: "Parse and test the forms on the URL instead of its parameters."
+  - id: cookie
+    flag: --cookie
+    type: string
+    label: Cookie (--cookie)
+    help: "Session cookie for pages behind a login, e.g. PHPSESSID=abc."
+  - id: level
+    flag: --level
+    type: choice
+    choices: ["1", "2", "3", "4", "5"]
+    default: "1"
+    label: Level (--level)
+    help: "How many places to test: 2 adds cookies, 3 adds User-Agent/Referer. Higher = slower."
+  - id: risk
+    flag: --risk
+    type: choice
+    choices: ["1", "2", "3"]
+    default: "1"
+    label: Risk (--risk)
+    help: "3 adds OR-based payloads, which can change data (e.g. UPDATE every row). Keep 1 unless you need it."
+  - id: technique
+    flag: --technique
+    type: string
+    label: Techniques (--technique)
+    help: "Subset of BEUSTQ (Boolean, Error, Union, Stacked, Time, inline Query). Empty = all."
+    advanced: true
+  - id: dbs
+    flag: --dbs
+    type: bool
+    default: true
+    label: List databases (--dbs)
+    help: "Once injectable, list the databases."
+  - id: threads
+    flag: --threads
+    type: int
+    default: 4
+    label: Threads
+    help: "Concurrent requests (max 10)."
+    advanced: true
+presets:
+  thorough: { level: "3", risk: "2" }
+command:
+  - sqlmap
+  - -u
+  - "{url}"
+  - --batch
+  - "{opt.data}"
+  - "{opt.forms}"
+  - "{opt.cookie}"
+  - "{opt.level}"
+  - "{opt.risk}"
+  - "{opt.technique}"
+  - "{opt.dbs}"
+  - "{opt.threads}"
+  - "--output-dir={out}/sqlmap"
+  - "{extra}"
+timeout: 3600
+outputs: []                   # sqlmap creates --output-dir itself; the parser reads stdout
+parser: lines_regex
+parser_config:
+  patterns:
+    # "[INFO] GET parameter 'id' is 'MySQL >= 5.0 AND error-based ...' injectable"
+    - regex: "(?P<title>(?:GET|POST|URI|Cookie|User-Agent|Referer|\\(custom\\) POST) parameter '[^']+' (?:is|appears to be) '[^']+' injectable)"
+      type: vuln
+      set: { id: sqli, where: "{url}" }
+      confidence: 0.9
+notes: "Runs with --batch (default answers). Results and dumps are in raw/sqlmap-*/sqlmap/. Add --dump -D <db> -T <table> in Extra args to dump a table."
+learn: https://book.hacktricks.xyz/pentesting-web/sql-injection/sqlmap

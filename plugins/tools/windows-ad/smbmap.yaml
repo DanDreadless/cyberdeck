@@ -1,0 +1,33 @@
+id: smbmap
+name: smbmap
+description: SMB share and permission enumeration
+category: windows-ad
+safety: intrusive
+ports: [445, 139]
+detect:
+  binary: smbmap
+  version_cmd:
+  - smbmap
+  - --version
+  help_cmd:
+  - smbmap
+  - --help
+  apt: smbmap
+inputs:
+  target:
+    from: host
+    label: Target
+    help: Authorized CTF/lab host or address.
+command:
+- smbmap
+- -H
+- '{target}'
+- '{extra}'
+timeout: 900
+outputs: []
+learn: https://www.kali.org/tools/smbmap/
+teach:
+  does: >
+    Lists [[smb|SMB shares]] and your permission on each, with or without a login.
+  look_for: >
+    READ ONLY or READ, WRITE next to a share that isn't a default one.

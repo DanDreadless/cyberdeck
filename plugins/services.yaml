@@ -1,0 +1,50 @@
+# Service classification (docs/PLUGINS.md "Service kinds"): what a port really is, so rules match
+# `kind: web` instead of trusting nmap's service name. Entries are tried in order; the first one
+# whose conditions all match wins. Conditions: ports (list), names (nmap service names), products
+# (case-insensitive substrings of nmap's product), tunnel (ssl). Anything unmatched whose nmap
+# name starts with "http" is `web`; everything else keeps nmap's name as its kind.
+# Users override or extend this in ~/.config/cyberdeck/services.yaml (their entries come first).
+
+# WinRM speaks SOAP over HTTP, so nmap calls it "http" (Microsoft HTTPAPI httpd 2.0). On its own
+# ports it is WinRM, not a website; the same server on other ports (e.g. 8443) can be a real site.
+- kind: winrm
+  ports: [5985, 5986, 47001]
+  products: ["Microsoft HTTPAPI"]
+- kind: winrm
+  ports: [5985, 5986]
+  names: [wsman, wsmans]
+
+- kind: smb
+  names: [microsoft-ds, netbios-ssn]
+- kind: smb
+  ports: [139, 445]
+- kind: rpc
+  names: [msrpc, rpcbind, ncacn_http]
+- kind: rdp
+  names: [ms-wbt-server]
+- kind: rdp
+  ports: [3389]
+- kind: ldap
+  names: [ldap, ldapssl, globalcatLDAP, globalcatLDAPssl]
+- kind: kerberos
+  names: [kerberos-sec, kpasswd5, kerberos]
+- kind: dns
+  names: [domain]
+- kind: ssh
+  names: [ssh]
+- kind: ftp
+  names: [ftp, ftps]
+- kind: smtp
+  names: [smtp, smtps, submission]
+- kind: mssql
+  names: [ms-sql-s, ms-sql-m]
+- kind: mysql
+  names: [mysql]
+- kind: postgres
+  names: [postgresql]
+- kind: redis
+  names: [redis]
+- kind: snmp
+  names: [snmp]
+- kind: nfs
+  names: [nfs, mountd, nfs_acl]

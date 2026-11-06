@@ -1,0 +1,87 @@
+id: ffuf-dir
+name: ffuf (directories)
+description: Fast directory and file discovery (hidden paths on a site)
+category: web
+group: dir-bruteforce
+rank: 40
+safety: safe
+detect:
+  binary: ffuf
+  apt: ffuf
+  version_cmd: ["ffuf", "-V"]
+  version_regex: 'ffuf version: (\S+)'
+  help_cmd: ["ffuf", "-h"]
+inputs:
+  url:
+    from: web_url
+    label: URL
+    help: "Base URL; FUZZ is appended as the path. Use the hostname once it is in /etc/hosts."
+options:
+  - id: wordlist
+    flag: -w
+    type: wordlist
+    default: "{wordlists.dirs_medium}"
+    label: Wordlist
+    help: "Paths to try."
+  - id: extensions
+    flag: -e
+    type: string
+    label: Extensions (-e)
+    help: "Also try each word with these, e.g. .php,.txt,.bak"
+    when: { software: [php] }
+    default: ".php,.txt"
+  - id: match_codes
+    flag: -mc
+    type: string
+    default: "200,204,301,302,307,401,403,405"
+    label: Match status codes (-mc)
+    help: "Keep responses with these codes."
+  - id: autocalibrate
+    flag: -ac
+    type: bool
+    default: true
+    label: Auto-calibrate (-ac)
+    help: "Learn what a 'not found' answer looks like and hide it (handles soft 404s)."
+  - id: recursion
+    flag: -recursion
+    type: bool
+    default: false
+    label: Recurse into found directories
+    help: "Slower; use a small wordlist with it."
+  - id: threads
+    flag: -t
+    type: int
+    default: 40
+    label: Threads
+    help: "Concurrent requests."
+    advanced: true
+presets:
+  quick: { wordlist: "{wordlists.dirs_small}" }
+command:
+  - ffuf
+  - -u
+  - "{url}FUZZ"
+  - "{opt.wordlist}"
+  - "{opt.extensions}"
+  - "{opt.match_codes}"
+  - "{opt.autocalibrate}"
+  - "{opt.recursion}"
+  - "{opt.threads}"
+  - -of
+  - json
+  - -o
+  - "{out}/ffuf-dir.json"
+  - -noninteractive
+  - "{extra}"
+timeout: 1800
+outputs:
+  - path: "{out}/ffuf-dir.json"
+parser: ffuf_dir
+learn: https://book.hacktricks.xyz/network-services-pentesting/pentesting-web
+teach:
+  does: >
+    Replaces FUZZ in the URL with every word of a [[wordlist]] and reports the answers that
+    differ ([[fuzzing]]).
+  look_for: >
+    Hits with a status or size different from the rest. If everything matches, the site
+    answers every path the same way: filter by size.

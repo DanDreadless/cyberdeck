@@ -1,0 +1,21 @@
+id: exiftool
+name: exiftool
+description: Show file metadata (authors, software, GPS, comments often hide hints)
+category: forensics
+safety: safe
+detect:
+  binary: exiftool
+  apt: libimage-exiftool-perl
+  version_cmd: ["exiftool", "-ver"]
+  version_regex: '(\S+)'
+inputs:
+  file:
+    type: path
+    label: File
+    help: "Path to the file, relative to the box folder (e.g. loot/image.jpg) or absolute."
+command:
+  - exiftool
+  - "{extra}"
+  - "{file}"
+timeout: 120
+learn: https://www.kali.org/tools/exiftool/

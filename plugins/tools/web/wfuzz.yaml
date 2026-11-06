@@ -1,0 +1,61 @@
+id: wfuzz
+name: wfuzz
+description: Fuzz any part of a request (path, parameter, header) with a wordlist
+category: web
+safety: intrusive
+detect:
+  binary: wfuzz
+  apt: wfuzz
+  help_cmd: ["wfuzz", "-h"]
+inputs:
+  url:
+    from: web_url
+    label: URL
+    help: "Request URL; FUZZ marks the spot to fuzz. Default appends FUZZ as a path: change it to e.g. http://box.htb/page.php?FUZZ=1 for parameters."
+options:
+  - id: wordlist
+    flag: -w
+    type: wordlist
+    default: "{wordlists.dirs_small}"
+    label: Wordlist (-w)
+    help: "Words to put in place of FUZZ."
+  - id: hide_codes
+    flag: --hc
+    type: string
+    default: "404"
+    label: Hide status codes (--hc)
+    help: "Hide responses with these codes, e.g. 404,403."
+  - id: hide_chars
+    flag: --hh
+    type: string
+    label: Hide response sizes (--hh)
+    help: "Hide responses with this many characters (the size of the 'not found' page)."
+  - id: header
+    flag: -H
+    type: string
+    label: Header (-H)
+    help: "Extra header, e.g. 'Host: FUZZ.box.htb' for vhost fuzzing (then hide the default page size)."
+  - id: threads
+    flag: -t
+    type: int
+    default: 20
+    label: Threads (-t)
+    help: "Concurrent connections."
+    advanced: true
+command:
+  - wfuzz
+  - "{opt.wordlist}"
+  - "{opt.hide_codes}"
+  - "{opt.hide_chars}"
+  - "{opt.header}"
+  - "{opt.threads}"
+  - -f
+  - "{out}/wfuzz.txt,raw"
+  - "{extra}"
+  - "{url}FUZZ"
+timeout: 1800
+outputs:
+  - path: "{out}/wfuzz.txt"
+parser: none
+notes: "The URL gets FUZZ appended; to fuzz something else, edit the command at the end of the dialog. For plain directory discovery the dir-bruteforce tools (ffuf, feroxbuster) parse their results."
+learn: https://book.hacktricks.xyz/pentesting-web/web-tool-wfuzz

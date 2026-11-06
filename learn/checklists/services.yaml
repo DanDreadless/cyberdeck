@@ -1,0 +1,167 @@
+# Built-in methodology checklist: file shares, other services and Windows domains.
+# Format: src/cyberdeck/core/methodology.py.
+
+- id: smb.shares
+  section: smb
+  phase: enumeration
+  title: "List SMB shares without a password"
+  why: >
+    Many boxes leave a share readable anonymously ([[null-session]]). Backups, scripts and
+    documents on it often hold passwords.
+  how: "smbclient -N -L //<ip>/"
+  applies: { kinds: [smb] }
+  done_when: { tools_done: [smbclient] }
+  tool: smbclient
+  priority: 90
+
+- id: smb.guest
+  section: smb
+  phase: enumeration
+  title: "Check null and guest access and your permissions on each share"
+  why: >
+    Some hosts refuse the empty login but accept "guest". READ or WRITE next to a share tells
+    you where to look and where you could put files ([[smb]]).
+  how: "netexec smb <ip> -u guest -p '' --shares"
+  applies: { kinds: [smb] }
+  done_when: { tools_done: [netexec-smb] }
+  tool: netexec-smb
+  priority: 85
+
+- id: smb.download
+  section: smb
+  phase: enumeration
+  title: "Download and read everything on readable shares"
+  why: >
+    The useful file is rarely on top: look inside every folder, including old installers,
+    scripts and .xml/.config files.
+  how: "smbclient //<ip>/<share> -N, then: recurse ON; prompt OFF; mget *  (saves into the current folder: cd loot/ first)"
+  applies: { kinds: [smb] }
+  priority: 80
+
+- id: smb.users
+  section: smb
+  phase: enumeration
+  title: "Collect usernames over SMB/RPC"
+  why: >
+    An anonymous [[rpc|RPC]] session or RID cycling often lists every user. Real usernames
+    turn password guessing into half a login.
+  how: "r > enum4linux-ng or rpcclient-enum"
+  applies: { kinds: [smb] }
+  done_when: { tools_done: [enum4linux-ng] }
+  tool: enum4linux-ng
+  priority: 70
+
+- id: svc.ftp-anon
+  section: services
+  phase: enumeration
+  title: "Log in to FTP as anonymous"
+  why: >
+    Anonymous [[ftp|FTP]] is a classic: any password works for the user "anonymous", and the
+    files often include backups or notes.
+  how: "ftp <ip>  (user: anonymous, password: anything), then ls -la and get each file"
+  applies: { kinds: [ftp] }
+  priority: 90
+
+- id: svc.ssh-later
+  section: services
+  phase: foothold
+  title: "Keep SSH for passwords and keys you find elsewhere"
+  why: >
+    [[ssh|SSH]] itself is rarely the way in. Note its version, then try every credential and
+    private key you find later ([[password-reuse]]). Don't brute-force it.
+  how: "ssh <user>@<ip>  /  ssh -i id_rsa <user>@<ip> (chmod 600 id_rsa first)"
+  applies: { kinds: [ssh] }
+  priority: 40
+
+- id: svc.snmp
+  section: services
+  phase: enumeration
+  title: "Walk SNMP with the 'public' community"
+  why: >
+    [[snmp|SNMP]] can list running processes with their command lines (sometimes with
+    passwords), users and software.
+  how: "snmpwalk -v2c -c public <ip>"
+  applies: { kinds: [snmp] }
+  done_when: { tools_done: [snmpwalk] }
+  tool: snmpwalk
+  priority: 85
+
+- id: svc.nfs
+  section: services
+  phase: enumeration
+  title: "List NFS exports and mount the open ones"
+  why: >
+    Exports open to everyone ([[nfs|NFS]]) can be mounted from Kali; home directories and
+    backups on them often hold SSH keys or passwords.
+  how: "showmount -e <ip>; sudo mount -t nfs <ip>:/<export> /mnt/nfs"
+  applies: { kinds: [nfs] }
+  done_when: { tools_done: [showmount] }
+  tool: showmount
+  priority: 85
+
+- id: svc.dns
+  section: services
+  phase: enumeration
+  title: "Ask the box's DNS server about its domain"
+  why: >
+    A zone transfer ([[dns|AXFR]]) can list every hostname, including hidden vhosts.
+  how: "dig axfr <domain> @<ip>"
+  applies: { kinds: [dns], has_domain: true }
+  done_when: { tools_done: [dnsrecon] }
+  tool: dnsrecon
+  priority: 75
+
+- id: svc.database
+  section: services
+  phase: foothold
+  title: "Try found passwords (and no password) on exposed databases"
+  why: >
+    A database open to the network sometimes takes root with no password, and web apps'
+    database passwords are often reused ([[password-reuse]]).
+  how: "mysql -h <ip> -u root  /  redis-cli -h <ip> INFO  /  psql -h <ip> -U postgres"
+  applies: { kinds: [mysql, postgres, redis, mssql] }
+  priority: 70
+
+- id: svc.telnet
+  section: services
+  phase: foothold
+  title: "Try telnet with common users and a blank password"
+  why: >
+    Telnet on HTB usually means a misconfigured login: root, admin or administrator with no
+    password is worth one try each.
+  how: "telnet <ip>  (try root / admin / administrator, empty password)"
+  applies: { services: [telnet] }
+  priority: 85
+
+- id: win.domain-hosts
+  section: windows
+  phase: recon
+  title: "Put the domain and the DC's full name in /etc/hosts"
+  why: >
+    [[active-directory|Active Directory]] tools need the domain (corp.htb) and the domain
+    controller's name (dc01.corp.htb) to resolve, or Kerberos and LDAP fail.
+  how: "h on the dashboard; add both names on the box's line"
+  applies: { kinds: [kerberos, ldap] }
+  priority: 90
+
+- id: win.clock
+  section: windows
+  phase: recon
+  title: "Sync your clock with the domain controller"
+  why: >
+    [[kerberos|Kerberos]] refuses logins when your clock is more than 5 minutes off the DC's.
+  how: "sudo ntpdate <ip>  (or: sudo rdate -n <ip>)"
+  applies: { kinds: [kerberos] }
+  priority: 70
+
+- id: win.users
+  section: windows
+  phase: enumeration
+  title: "Build a list of domain usernames"
+  why: >
+    Usernames from RPC, LDAP, the website's staff page or file metadata are the input for
+    every [[kerberos|Kerberos]] check. Save them one per line in loot/users.txt.
+  how: "r > rpcclient-enum / impacket-lookupsid; add names you see on the site"
+  applies: { kinds: [kerberos, ldap] }
+  done_when: { has_users: true }
+  priority: 80

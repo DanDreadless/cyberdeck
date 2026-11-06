@@ -1,0 +1,62 @@
+id: whatweb
+name: WhatWeb
+description: Fingerprint web technologies and versions
+category: web
+group: web-fingerprint
+safety: safe
+detect:
+  binary: whatweb
+  version_cmd: ["whatweb", "--version"]
+  version_regex: 'WhatWeb version (\S+)'
+  help_cmd: ["whatweb", "--help"]
+  apt: whatweb
+inputs:
+  url:
+    from: web_url
+    label: URL
+    help: "Site to fingerprint. Filled in from the web services nmap found."
+options:
+  - id: aggression
+    flag: -a
+    type: choice
+    choices: [1, 3, 4]
+    default: 3
+    label: Aggression level
+    help: "1 = stealthy (one request), 3 = aggressive (extra requests if a plugin matches), 4 = heavy."
+  - id: follow
+    flag: --follow-redirect
+    type: choice
+    choices: [never, http-only, meta-only, same-site, always]
+    default: always
+    label: Follow redirects
+    help: "HTB sites often redirect to their hostname; 'always' follows that (needs /etc/hosts)."
+  - id: user_agent
+    flag: -U
+    type: string
+    label: User-Agent
+    advanced: true
+    help: "Custom User-Agent string."
+presets:
+  stealthy: { aggression: 1 }
+  heavy: { aggression: 4 }
+command:
+  - whatweb
+  - "{opt.aggression}"
+  - "{opt.follow}"
+  - "{opt.user_agent}"
+  - "--log-json={out}/whatweb.json"
+  - "--color=never"
+  - "{extra}"
+  - "{url}"
+timeout: 180
+outputs:
+  - path: "{out}/whatweb.json"
+parser: whatweb_json
+learn: https://book.hacktricks.xyz/network-services-pentesting/pentesting-web
+teach:
+  does: >
+    Visits the site and reports the technologies it recognises: web server, language,
+    [[cms|CMS]], libraries and their versions. It follows [[redirect|redirects]].
+  look_for: >
+    A product with a version (search it for known [[cve|exploits]]), a RedirectLocation with a
+    hostname to add to /etc/hosts, and the page title.

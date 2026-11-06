@@ -1,0 +1,59 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "cyberdeck"
+version = "0.0.1"
+description = "Recon handler for Hack The Box targets: ingest nmap, orchestrate Kali tools, track findings, suggest next steps."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "textual>=0.80",
+  "rich>=13.7",
+  "typer>=0.12",
+  "pydantic>=2.7",
+  "pydantic-settings>=2.7",  # settings + .env loading (core/config.py)
+  "pyyaml>=6.0",
+  "mcp>=1.9",          # `cyberdeck mcp` server (ADR 0007)
+]
+
+[project.optional-dependencies]
+web = ["textual-serve>=1.1"]   # user-facing extra: `uv tool install "cyberdeck[web]"`
+
+[dependency-groups]            # dev-only, installed by `uv sync` by default (PEP 735)
+dev = ["pytest>=8", "pytest-asyncio>=0.23", "ruff>=0.6", "mypy>=1.11", "types-PyYAML", "textual-dev>=1.5"]
+
+[project.scripts]
+cyberdeck = "cyberdeck.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cyberdeck"]
+
+# Built-in tool manifests, parsers, rules and learning content (learn/) live at the repo root (users copy and edit them);
+# wheels carry them as cyberdeck/_data/ (found by plugins/manifest.py:package_data_dir).
+[tool.hatch.build.targets.wheel.force-include]
+"plugins" = "cyberdeck/_data/plugins"
+"rules" = "cyberdeck/_data/rules"
+"learn" = "cyberdeck/_data/learn"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "S"]
+ignore = ["S603", "S607"]  # subprocess use is intentional and centralised in core/runner.py
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106"]  # pytest asserts; fake secrets in fixtures
+
+[tool.mypy]
+strict = true
+files = ["src"]
+plugins = ["pydantic.mypy"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"

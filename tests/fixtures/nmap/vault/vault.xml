@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<!-- Fictional box "vault" (Samba file server). Scan accidentally includes a second host. -->
+<nmaprun scanner="nmap" args="nmap -sC -sV -Pn --reason -oA nmap/vault 10.129.60.7 10.129.60.8" start="1793883600" startstr="Wed Nov  4 13:00:00 2026" version="7.95" xmloutputversion="1.05">
+<host starttime="1793883601" endtime="1793883640"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.129.60.7" addrtype="ipv4"/>
+<hostnames>
+</hostnames>
+<ports>
+<port protocol="tcp" portid="139"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="netbios-ssn" product="Samba smbd" version="3.X - 4.X" extrainfo="workgroup: WORKGROUP" hostname="FILES" method="probed" conf="10"><cpe>cpe:/a:samba:samba</cpe></service></port>
+<port protocol="tcp" portid="445"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="netbios-ssn" product="Samba smbd" version="4.6.2" hostname="FILES" method="probed" conf="10"><cpe>cpe:/a:samba:samba:4.6.2</cpe></service></port>
+</ports>
+<hostscript><script id="smb-os-discovery" output="&#xa;  OS: Windows 6.1 (Samba 4.6.2)&#xa;  Computer name: files&#xa;  NetBIOS computer name: FILES\x00&#xa;  Domain name: vault.htb&#xa;  FQDN: files.vault.htb&#xa;  System time: 2026-11-04T13:00:35+00:00&#xa;"/><script id="smb-security-mode" output="&#xa;  account_used: guest&#xa;  authentication_level: user&#xa;  challenge_response: supported&#xa;  message_signing: disabled (dangerous, but default)"/></hostscript>
+</host>
+<host starttime="1793883601" endtime="1793883640"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.129.60.8" addrtype="ipv4"/>
+<hostnames>
+</hostnames>
+<ports>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="ssh" product="OpenSSH" version="8.4p1" method="probed" conf="10"/></port>
+</ports>
+</host>
+<host><status state="down" reason="no-response" reason_ttl="0"/>
+<address addr="10.129.60.9" addrtype="ipv4"/>
+</host>
+<runstats><finished time="1793883640" timestr="Wed Nov  4 13:00:40 2026" elapsed="40.00" exit="success"/><hosts up="2" down="1" total="3"/>
+</runstats>
+</nmaprun>

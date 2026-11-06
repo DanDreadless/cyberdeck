@@ -1,0 +1,3 @@
+# Files are written with LF on Kali; keep them LF on Windows too so git shows no line-ending churn.
+* text=auto eol=lf
+*.sh text eol=lf

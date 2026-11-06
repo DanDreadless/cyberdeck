@@ -1,0 +1,60 @@
+id: dnsenum
+name: dnsenum
+description: DNS enumeration (records, zone transfer, subdomain brute force) in one pass
+category: recon
+safety: intrusive
+ports: [53]
+detect:
+  binary: dnsenum
+  apt: dnsenum
+  version_cmd: ["dnsenum", "--help"]
+  version_regex: 'dnsenum VERSION:(\S+)'
+  help_cmd: ["dnsenum", "--help"]
+inputs:
+  domain:
+    from: domain
+    label: Domain
+    help: "Domain to enumerate (e.g. box.htb)."
+options:
+  - id: dnsserver
+    flag: --dnsserver
+    type: string
+    default: "{target.ip}"
+    label: DNS server
+    help: "Server to ask; HTB boxes answer for their own domain, so the box IP by default."
+  - id: wordlist
+    flag: -f
+    type: wordlist
+    default: "{wordlists.vhosts}"
+    label: Subdomain list (-f)
+    help: "Subdomains to brute force."
+  - id: threads
+    flag: --threads
+    type: int
+    default: 10
+    label: Threads
+    help: "Parallel queries."
+    advanced: true
+command:
+  - dnsenum
+  - --nocolor
+  - --noreverse
+  - "{opt.dnsserver}"
+  - "{opt.wordlist}"
+  - "{opt.threads}"
+  - --subfile
+  - "{out}/subdomains.txt"
+  - "{extra}"
+  - "{domain}"
+timeout: 1800
+outputs:
+  - path: "{out}/subdomains.txt"
+parser: lines_regex
+parser_config:
+  patterns:
+    - regex: '^(?P<fqdn>[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)+)\.?\s*$'
+      type: hostname
+      tags: [dns]
+      confidence: 0.8
+notes: "Google scraping and whois are off by default (no internet use); reverse lookups are skipped (--noreverse)."
+learn: https://book.hacktricks.xyz/network-services-pentesting/pentesting-dns

@@ -1,0 +1,26 @@
+id: linpeas
+name: linpeas
+description: Linux privilege-escalation enumeration script
+category: linux-privesc
+safety: intrusive
+detect:
+  binary: linpeas
+  version_cmd:
+  - linpeas
+  - --version
+  help_cmd:
+  - linpeas
+  - --help
+  apt: peass
+inputs:
+  target:
+    from: host
+    label: Target
+    help: Authorized CTF/lab host or address.
+command:
+- linpeas
+- -a
+- '{extra}'
+timeout: 900
+outputs: []
+learn: https://www.kali.org/tools/linpeas/

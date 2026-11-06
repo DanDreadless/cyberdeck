@@ -1,0 +1,77 @@
+id: dnsrecon
+name: DNSRecon
+description: DNS enumeration against the box's DNS server (records, zone transfer, subdomain brute force)
+category: recon
+safety: intrusive
+ports: [53]
+detect:
+  binary: dnsrecon
+  apt: dnsrecon
+  version_cmd: ["dnsrecon", "-V"]
+  version_regex: 'DNSRecon version (\S+)'
+  help_cmd: ["dnsrecon", "-h"]
+inputs:
+  domain:
+    from: domain
+    label: Domain
+    help: "Domain to enumerate (e.g. box.htb)."
+options:
+  - id: nameserver
+    flag: -n
+    type: string
+    default: "{target.ip}"
+    label: Name server (-n)
+    help: "DNS server to ask; HTB boxes answer for their own domain, so the box IP by default."
+  - id: type
+    flag: -t
+    type: choice
+    choices: [std, axfr, brt, srv]
+    default: std
+    label: Enumeration type (-t)
+    help: "std = SOA/NS/A/MX/SRV records, axfr = zone transfer, brt = subdomain brute force (uses the dictionary), srv = SRV records (AD services)."
+  - id: dictionary
+    flag: -D
+    type: wordlist
+    default: "{wordlists.vhosts}"
+    label: Dictionary (-D)
+    help: "Subdomains to try with type brt."
+  - id: tcp
+    flag: --tcp
+    type: bool
+    default: false
+    label: Use TCP (--tcp)
+    help: "Query over TCP (when UDP 53 is filtered)."
+    advanced: true
+presets:
+  zone-transfer: { type: axfr }
+  brute: { type: brt }
+command:
+  - dnsrecon
+  - -d
+  - "{domain}"
+  - "{opt.nameserver}"
+  - "{opt.type}"
+  - "{opt.dictionary}"
+  - "{opt.tcp}"
+  - -j
+  - "{out}/dnsrecon.json"
+  - "{extra}"
+timeout: 900
+outputs:
+  - path: "{out}/dnsrecon.json"
+parser: lines_regex
+parser_config:
+  patterns:
+    # JSON records: "name": "dc01.box.htb" (the parser reads the JSON file line by line)
+    - regex: '"(?:name|target|mname)":\s*"(?P<fqdn>[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)+)\.?"'
+      type: hostname
+      tags: [dns]
+      confidence: 0.8
+learn: https://book.hacktricks.xyz/network-services-pentesting/pentesting-dns
+teach:
+  does: >
+    Asks the box's own [[dns|DNS]] server about its domain: records, a zone transfer, common
+    subdomains.
+  look_for: >
+    Hostnames you didn't know (add them to /etc/hosts) and a successful zone transfer (AXFR),
+    which lists every name.

@@ -1,0 +1,26 @@
+id: arp-scan
+name: arp-scan
+description: Local network ARP discovery
+category: recon
+safety: intrusive
+detect:
+  binary: arp-scan
+  version_cmd:
+  - arp-scan
+  - --version
+  help_cmd:
+  - arp-scan
+  - --help
+  apt: arp-scan
+inputs:
+  target:
+    from: host
+    label: Target
+    help: Authorized CTF/lab host or address.
+command:
+- arp-scan
+- --localnet
+- '{extra}'
+timeout: 900
+outputs: []
+learn: https://www.kali.org/tools/arp-scan/

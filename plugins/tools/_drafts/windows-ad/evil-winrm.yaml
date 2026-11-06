@@ -1,0 +1,44 @@
+id: evil-winrm
+name: evil-winrm
+description: WinRM client for authorized lab access
+category: windows-ad
+safety: exploit
+detect:
+  binary: evil-winrm
+  version_cmd:
+  - evil-winrm
+  - --version
+  help_cmd:
+  - evil-winrm
+  - --help
+  apt: evil-winrm
+inputs:
+  target:
+    from: host
+    label: Target
+    help: Authorized CTF/lab host or address.
+options:
+- id: user
+  type: string
+  default: ''
+  label: Username
+  help: Authorized lab account.
+- id: password
+  type: string
+  default: ''
+  label: Password
+  help: Authorized lab password.
+command:
+- evil-winrm
+- -i
+- '{target}'
+- -u
+- '{opt.user}'
+- -p
+- '{opt.password}'
+- '{extra}'
+timeout: 900
+outputs: []
+learn: https://www.kali.org/tools/evil-winrm/
+notes: Interactive or context-dependent utility. Review the generated invocation and
+  run manually in the authorized lab; do not assume unattended execution.

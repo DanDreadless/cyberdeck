@@ -1,0 +1,27 @@
+id: netdiscover
+name: netdiscover
+description: Local network host discovery
+category: recon
+safety: intrusive
+detect:
+  binary: netdiscover
+  version_cmd:
+  - netdiscover
+  - --version
+  help_cmd:
+  - netdiscover
+  - --help
+  apt: netdiscover
+inputs:
+  target:
+    from: host
+    label: Target
+    help: Authorized CTF/lab host or address.
+command:
+- netdiscover
+- -r
+- '{opt.range}'
+- '{extra}'
+timeout: 900
+outputs: []
+learn: https://www.kali.org/tools/netdiscover/

@@ -1,0 +1,3 @@
+[
+{"target":"http://10.129.231.15/","http_status":302,"request_config":{"headers":{"User-Agent":"WhatWeb/0.6.4"}},"plugins":{"Country":{"string":["RESERVED"],"module":["ZZ"]},"HTTPServer":{"os":["Ubuntu Linux"],"string":["nginx/1.18.0 (Ubuntu)"]},"IP":{"string":["10.129.231.15"]},"nginx":{"version":["1.18.0"]},"PHP":{"version":["8.1.2"]},"RedirectLocation":{"string":["http://lantern.htb/"]},"Title":{"string":["302 Found"]},"X-Powered-By":{"string":["PHP/8.1.2"]}}}
+]

@@ -1,0 +1,72 @@
+id: impacket-rpcdump
+name: rpcdump (RPC endpoints)
+description: List the RPC interfaces a Windows host exposes through the endpoint mapper (port 135)
+category: rpc
+safety: safe
+ports: [135, 593, 445, 139]
+detect:
+  binary: impacket-rpcdump
+  apt: impacket-scripts
+  version_cmd: ["impacket-rpcdump", "-h"]
+  version_regex: 'Impacket v(\S+)'
+  help_cmd: ["impacket-rpcdump", "-h"]
+inputs:
+  target:
+    from: target_ip
+    label: Target
+    help: "Windows host with port 135 open."
+options:
+  - id: port
+    flag: -port
+    type: choice
+    choices: ["135", "139", "443", "445", "593"]
+    default: "135"
+    label: Port (-port)
+    help: "135 = endpoint mapper (anonymous). 139/445 need a login (put user:pass@ in front of the target via the raw command)."
+command:
+  - impacket-rpcdump
+  - "{opt.port}"
+  - "{extra}"
+  - "{target}"
+timeout: 120
+outputs: []
+parser: lines_regex
+parser_config:
+  patterns:
+    - regex: '^Protocol: \[MS-RPRN\]'
+      type: vuln
+      set: { id: rpc-ms-rprn, where: "{target}", title: "Print Spooler (MS-RPRN) reachable over RPC: PrintNightmare / printer-bug coercion candidate" }
+      confidence: 0.5
+    - regex: '^Protocol: \[MS-PAR\]'
+      type: vuln
+      set: { id: rpc-ms-par, where: "{target}", title: "Print Spooler async interface (MS-PAR) reachable: PrintNightmare candidate" }
+      confidence: 0.5
+    - regex: '^Protocol: \[MS-EFSR\]'
+      type: vuln
+      set: { id: rpc-ms-efsr, where: "{target}", title: "EFSRPC (MS-EFSR) reachable: PetitPotam coercion candidate" }
+      confidence: 0.5
+    # named-pipe bindings carry the NetBIOS name: ncacn_np:\\KIOSK-042[\pipe\lsass]
+    - regex: '^\s*ncacn_np:\\\\(?P<text>[^\\\[]+)\['
+      type: note
+      set: { note_id: rpc-netbios-name, title: "NetBIOS name (from rpcdump)" }
+      confidence: 0.9
+    # replication / Netlogon interfaces only run on domain controllers
+    - regex: '^Protocol: \[MS-(?:DRSR|NRPC)\]'
+      type: note
+      set:
+        note_id: rpc-domain-controller
+        title: "Domain controller (from rpcdump)"
+        text: "MS-DRSR / MS-NRPC are exposed: this host is a domain controller. Kerberos and LDAP attacks apply."
+      confidence: 0.9
+    - regex: '^Protocol: \[MS-DFSNM\]'
+      type: vuln
+      set: { id: rpc-ms-dfsnm, where: "{target}", title: "DFS namespace management (MS-DFSNM) reachable: DFSCoerce candidate" }
+      confidence: 0.5
+notes: "Read-only: the endpoint mapper answers anonymously. Records the host's NetBIOS name, whether it is a domain controller, and coercion leads (Print Spooler, EFSRPC, DFS): leads mean the interface is listed, not a confirmed bug. Bindings on 49664+ are only reachable if those ports are open (check the nmap scan)."
+learn: https://book.hacktricks.xyz/network-services-pentesting/135-pentesting-msrpc
+teach:
+  does: >
+    Lists the [[rpc|RPC]] services a Windows host offers through port 135. It doesn't log in.
+  look_for: >
+    The host's name and whether it's a domain controller ([[active-directory]]). The list
+    itself is mostly background.

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<!-- Fictional box "ledger" (Windows AD domain controller). -->
+<nmaprun scanner="nmap" args="nmap -sC -sV -Pn --reason -p53,88,135,139,389,445,464,593,636,3268,3389,5985 -oA nmap/ledger 10.129.40.20" start="1793876400" startstr="Wed Nov  4 11:00:00 2026" version="7.95" xmloutputversion="1.05">
+<scaninfo type="syn" protocol="tcp" numservices="12" services="53,88,135,139,389,445,464,593,636,3268,3389,5985"/>
+<host starttime="1793876401" endtime="1793876480"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.129.40.20" addrtype="ipv4"/>
+<hostnames>
+</hostnames>
+<ports>
+<port protocol="tcp" portid="53"><state state="open" reason="syn-ack" reason_ttl="127"/><service name="domain" product="Simple DNS Plus" ostype="Windows" method="probed" conf="10"><cpe>cpe:/o:microsoft:windows</cpe></service></port>
+<port protocol="tcp" portid="88"><state state="open" reason="syn-ack" reason_ttl="127"/><service name="kerberos-sec" product="Microsoft Windows Kerberos" extrainfo="server time: 2026-11-04 18:00:12Z" ostype="Windows" method="probed" conf="10"><cpe>cpe:/a:microsoft:kerberos</cpe><cpe>cpe:/o:microsoft:windows</cpe></service></port>
+<port protocol="tcp" portid="135"><state state="open" reason="syn-ack" reason_ttl="127"/><service name="msrpc" product="Microsoft Windows RPC" ostype="Windows" method="probed" conf="10"><cpe>cpe:/o:microsoft:windows</cpe></service></port>
+<port protocol="tcp" portid="139"><state state="open" reason="syn-ack" reason_ttl="127"/><service name="netbios-ssn" product="Microsoft Windows netbios-ssn" ostype="Windows" method="probed" conf="10"><cpe>cpe:/o:microsoft:windows</cpe></service></port>
+<port protocol="tcp" portid="389"><state state="open" reason="syn-ack" reason_ttl="127"/><service name="ldap" product="Microsoft Windows Active Directory LDAP" extrainfo="Domain: ledger.htb0., Site: Default-First-Site-Name" ostype="Windows" method="probed" conf="10"><cpe>cpe:/o:microsoft:windows</cpe></service><script id="ssl-cert" output="Subject: commonName=DC01.ledger.htb&#xa;Subject Alternative Name: othername: 1.3.6.1.4.1.311.25.1::&lt;unsupported&gt;, DNS:DC01.ledger.htb&#xa;Issuer: commonName=ledger-DC01-CA&#xa;Public Key type: rsa&#xa;Public Key bits: 2048&#xa;Not valid before: 2026-01-10T09:12:11&#xa;Not valid after:  2027-01-10T09:12:11"/><script id="ssl-date" output="TLS randomness does not represent time"/></port>
+<port protocol="tcp" portid="445"><state state="open" reason="syn-ack" reason_ttl="127"/><service name="microsoft-ds" method="table" conf="3"/></port>
+<port protocol="tcp" portid="464"><state state="open" reason="syn-ack" reason_ttl="127"/><service name="kpasswd5" method="table" conf="3"/></port>
+<port protocol="tcp" portid="593"><state state="open" reason="syn-ack" reason_ttl="127"/><service name="ncacn_http" product="Microsoft Windows RPC over HTTP" version="1.0" ostype="Windows" method="probed" conf="10"><cpe>cpe:/o:microsoft:windows</cpe></service></port>
+<port protocol="tcp" portid="636"><state state="open" reason="syn-ack" reason_ttl="127"/><service name="ldap" product="Microsoft Windows Active Directory LDAP" extrainfo="Domain: ledger.htb0., Site: Default-First-Site-Name" ostype="Windows" tunnel="ssl" method="probed" conf="10"><cpe>cpe:/o:microsoft:windows</cpe></service><script id="ssl-cert" output="Subject: commonName=DC01.ledger.htb&#xa;Subject Alternative Name: othername: 1.3.6.1.4.1.311.25.1::&lt;unsupported&gt;, DNS:DC01.ledger.htb&#xa;Issuer: commonName=ledger-DC01-CA"/></port>
+<port protocol="tcp" portid="3268"><state state="open" reason="syn-ack" reason_ttl="127"/><service name="ldap" product="Microsoft Windows Active Directory LDAP" extrainfo="Domain: ledger.htb0., Site: Default-First-Site-Name" ostype="Windows" method="probed" conf="10"><cpe>cpe:/o:microsoft:windows</cpe></service></port>
+<port protocol="tcp" portid="3389"><state state="open" reason="syn-ack" reason_ttl="127"/><service name="ms-wbt-server" product="Microsoft Terminal Services" ostype="Windows" method="probed" conf="10"><cpe>cpe:/o:microsoft:windows</cpe></service><script id="rdp-ntlm-info" output="&#xa;  Target_Name: LEDGER&#xa;  NetBIOS_Domain_Name: LEDGER&#xa;  NetBIOS_Computer_Name: DC01&#xa;  DNS_Domain_Name: ledger.htb&#xa;  DNS_Computer_Name: DC01.ledger.htb&#xa;  DNS_Tree_Name: ledger.htb&#xa;  Product_Version: 10.0.17763&#xa;  System_Time: 2026-11-04T18:00:20+00:00"/></port>
+<port protocol="tcp" portid="5985"><state state="open" reason="syn-ack" reason_ttl="127"/><service name="http" product="Microsoft HTTPAPI httpd" version="2.0" extrainfo="SSDP/UPnP" ostype="Windows" method="probed" conf="10"><cpe>cpe:/o:microsoft:windows</cpe></service><script id="http-title" output="Not Found"/><script id="http-server-header" output="Microsoft-HTTPAPI/2.0"/></port>
+</ports>
+<hostscript><script id="smb2-security-mode" output="&#xa;  3:1:1: &#xa;    Message signing enabled and required"/><script id="smb2-time" output="&#xa;  date: 2026-11-04T18:00:21&#xa;  start_date: N/A"/><script id="clock-skew" output="mean: 7h00m00s, deviation: 0s, median: 7h00m00s"/></hostscript>
+<times srtt="9800" rttvar="900" to="100000"/>
+</host>
+<runstats><finished time="1793876480" timestr="Wed Nov  4 11:01:20 2026" summary="Nmap done; 1 IP address (1 host up) scanned in 80.10 seconds" elapsed="80.10" exit="success"/><hosts up="1" down="0" total="1"/>
+</runstats>
+</nmaprun>

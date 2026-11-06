@@ -1,0 +1,27 @@
+id: pspy
+name: pspy
+description: Monitor processes without root
+category: linux-privesc
+safety: intrusive
+detect:
+  binary: pspy
+  version_cmd:
+  - pspy
+  - --version
+  help_cmd:
+  - pspy
+  - --help
+  apt: pspy
+inputs:
+  target:
+    from: host
+    label: Target
+    help: Authorized CTF/lab host or address.
+command:
+- pspy
+- '{extra}'
+timeout: 900
+outputs: []
+learn: https://www.kali.org/tools/pspy/
+notes: Interactive or context-dependent utility. Review the generated invocation and
+  run manually in the authorized lab; do not assume unattended execution.

@@ -1,0 +1,34 @@
+id: nc
+name: nc
+description: Netcat TCP/UDP client
+category: services
+safety: intrusive
+detect:
+  binary: nc
+  version_cmd:
+  - nc
+  - --version
+  help_cmd:
+  - nc
+  - --help
+  apt: netcat-openbsd
+inputs:
+  target:
+    from: host
+    label: Target
+    help: Authorized CTF/lab host or address.
+options:
+- id: port
+  type: int
+  default: 1234
+  label: Port
+  help: TCP port.
+command:
+- nc
+- -nv
+- '{target}'
+- '{opt.port}'
+- '{extra}'
+timeout: 900
+outputs: []
+learn: https://www.kali.org/tools/nc/

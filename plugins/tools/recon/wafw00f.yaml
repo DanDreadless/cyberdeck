@@ -1,0 +1,21 @@
+id: wafw00f
+name: wafw00f
+description: Detect a web application firewall in front of a site
+category: web
+safety: safe
+detect:
+  binary: wafw00f
+  apt: wafw00f
+  version_cmd: ["wafw00f", "--version"]
+  version_regex: '(\d+\.\d+\.\d+)'
+inputs:
+  url:
+    from: web_url
+    label: URL
+    help: "Site to check. Filled in from the web services found."
+command:
+  - wafw00f
+  - "{extra}"
+  - "{url}"
+timeout: 120
+learn: https://www.kali.org/tools/wafw00f/

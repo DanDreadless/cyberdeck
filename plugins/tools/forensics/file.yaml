@@ -1,0 +1,21 @@
+id: file
+name: file
+description: Identify a file's real type from its contents
+category: forensics
+safety: safe
+detect:
+  binary: file
+  apt: file
+  version_cmd: ["file", "--version"]
+  version_regex: 'file-(\S+)'
+inputs:
+  file:
+    type: path
+    label: File
+    help: "Path to the file, relative to the box folder (e.g. loot/image.jpg) or absolute."
+command:
+  - file
+  - "{extra}"
+  - "{file}"
+timeout: 60
+learn: https://www.kali.org/tools/file/

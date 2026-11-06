@@ -1,0 +1,223 @@
+# Web rules. Format: docs/RULES.md. They match `kind: web` (plugins/services.yaml), not nmap's
+# name, so WinRM (nmap: "http" on 5985) is never treated as a website. {service.url} uses the box's hostname once /etc/hosts maps
+# it, so these re-trigger against the hostname after the hosts question is answered.
+- id: web.fingerprint
+  phase: enumeration
+  when:
+    finding: service
+    match: { kind: web, state: open }
+  suggest:
+    tool: whatweb
+    with: { url: "{service.url}" }
+  title: "Fingerprint the web stack on {service.url}"
+  why: >
+    Knowing the framework, [[cms|CMS]] and versions tells you which exploits and paths matter. It also
+    follows [[redirect|redirects]], which is how most HTB boxes reveal their [[hostname]].
+  learn: https://book.hacktricks.xyz/network-services-pentesting/pentesting-web
+  priority: 90
+
+- id: web.dirs
+  phase: enumeration
+  requires_state: { web_ready: true }
+  when:
+    finding: service
+    match: { kind: web, state: open }
+  suggest:
+    group: dir-bruteforce
+    with: { url: "{service.url}" }
+  title: "Look for hidden directories and files on {service.url}"
+  why: >
+    Admin panels, backups, [[git-exposure|.git folders]] and dev files are often unlinked but reachable. Waits
+    for the hostname to be in [[etc-hosts|/etc/hosts]], because by IP an HTB site usually redirects every path.
+  learn: https://book.hacktricks.xyz/network-services-pentesting/pentesting-web#brute-force-directories-and-files
+  priority: 80
+
+- id: web.vhosts
+  phase: enumeration
+  requires_state: { has_domain: true }
+  when:
+    finding: service
+    match: { kind: web, state: open }
+  suggest:
+    group: vhost-fuzz
+    with: { url: "{service.url_ip}", domain: "{domain}" }
+  title: "Fuzz for virtual hosts under {domain} on {service.url_ip}"
+  why: >
+    One IP can serve several sites ([[vhost|virtual hosts]]: dev., admin., staging.). They only
+    answer to their own Host header, so nothing links to them; [[fuzzing]] the
+    [[host-header|Host header]] finds them.
+  learn: https://book.hacktricks.xyz/pentesting-web/domain-subdomain-takeover#virtual-hosts
+  priority: 70
+
+- id: web.host-fingerprint
+  phase: enumeration
+  when:
+    finding: hostname
+    match: { kind: host, in_hosts_file: true, is_best: false, url: { exists: true } }
+  suggest:
+    tool: whatweb
+    with: { url: "{hostname.url}" }
+  title: "Fingerprint {hostname.url}"
+  why: >
+    A second hostname (a [[vhost]] or a redirect target) is usually a different application, with
+    its own stack and its own bugs.
+  priority: 85
+
+- id: web.host-dirs
+  phase: enumeration
+  when:
+    finding: hostname
+    match: { kind: host, in_hosts_file: true, is_best: false, url: { exists: true } }
+  suggest:
+    group: dir-bruteforce
+    with: { url: "{hostname.url}" }
+  title: "Look for hidden directories and files on {hostname.url}"
+  why: "Each vhost is its own site with its own [[directory-bruteforce|hidden paths]]."
+  priority: 75
+
+- id: web.nikto
+  phase: enumeration
+  requires_state: { web_ready: true }
+  when:
+    finding: service
+    match: { kind: web, state: open }
+  suggest:
+    tool: nikto
+    with: { url: "{service.url}" }
+  title: "Scan {service.url} for known issues with nikto (noisy)"
+  why: >
+    Nikto checks thousands of known-bad files, outdated servers and misconfigurations. It is
+    loud and slow, so it's tagged [[safety-tags|intrusive]] and only runs when you say so.
+  learn: https://book.hacktricks.xyz/network-services-pentesting/pentesting-web
+  priority: 30
+
+- id: web.wordlist
+  phase: enumeration
+  requires_state: { web_ready: true }
+  when:
+    finding: service
+    match: { kind: web, state: open }
+  suggest:
+    tool: cewl
+    with: { url: "{service.url}" }
+  title: "Build a wordlist from the words on {service.url}"
+  why: >
+    HTB passwords are often a word from the box's own site (a product, a name, a place) plus a
+    year. A site-specific list is small enough to try online with hydra and is a good base for
+    [[hash-cracking|hashcat/john]] rules.
+  learn: https://www.kali.org/tools/cewl/
+  priority: 35
+
+- id: web.sqli
+  phase: foothold
+  when:
+    finding: url
+    match: { url: { regex: '\?[^=#]+=' } }
+  suggest:
+    tool: sqlmap
+    with: { url: "{url.url}" }
+  title: "Test {url.url} for SQL injection with sqlmap"
+  why: >
+    A page that takes a query parameter may pass it straight into a database query ([[sqli|SQL injection]]). sqlmap runs
+    with --batch at level 1 / risk 1 (no data-changing payloads) and lists the databases if it
+    gets in. Tagged exploit, so it only runs when you say so.
+  learn: https://book.hacktricks.xyz/pentesting-web/sql-injection/sqlmap
+  priority: 25
+
+- id: web.inspect-page
+  phase: enumeration
+  when:
+    finding: url
+    match: { status: 200, title: { exists: true }, url: { not: { regex: '\.(?:css|js|png|jpe?g|gif|svg|ico|woff2?)$' } } }
+    unless: { url: { regex: '^https?://\d+\.\d+\.\d+\.\d+[:/]' } }
+  suggest:
+    tool: page-inspect
+    with: { url: "{url.url}" }
+  title: "Read the source of {url.url} (product, version, hints, hidden endpoints)"
+  why: >
+    The page itself is the best fingerprint of a custom app: the title names the product, the
+    [[source-code-review|source]] can carry a version, tooltips and comments leave hints ([[default-credentials|default passwords]]...), and
+    forms and JavaScript call endpoints that no wordlist will find.
+  learn: https://book.hacktricks.xyz/network-services-pentesting/pentesting-web#web-tech-tricks
+  priority: 88
+
+- id: web.hint
+  phase: enumeration
+  when:
+    finding: note
+    match: { tags: { contains: hint } }
+  ask:
+    prompt: "{note.title}: \"{note.text}\" - noted? Follow it up (where would that value come from?)"
+    action: none
+  why: >
+    Developers leave clues in tooltips, placeholders and comments. On a CTF they are usually
+    the intended path: a [[default-credentials|default password]], a serial number, a username, a debug switch.
+  priority: 96
+
+- id: web.endpoint-post
+  phase: enumeration
+  when:
+    finding: url
+    match: { tags: { contains: post } }
+    unless: { url: { regex: '/login/?$' } }
+  suggest:
+    tool: http-probe
+    with: { url: "{url.url}", method: POST }
+  title: "Call POST {url.url} (found in the page source) and look at the answer"
+  why: >
+    Endpoints called from JavaScript or forms are part of the app's real attack surface but
+    invisible to [[directory-bruteforce|directory brute-forcing]]. Their responses (JSON errors, required fields,
+    debug output) tell you what they expect and whether they check anything.
+  learn: https://book.hacktricks.xyz/network-services-pentesting/pentesting-web
+  priority: 82
+
+- id: web.api-fuzz
+  phase: enumeration
+  when:
+    finding: url
+    match: { url: { regex: '/api$' }, status: [401, 403] }
+    unless: { url: { regex: '^https?://\d+\.\d+\.\d+\.\d+[:/]' } }
+  suggest:
+    group: dir-bruteforce
+    with:
+      url: "{url.url}/"
+      wordlist: /usr/share/seclists/Discovery/Web-Content/api/api-endpoints.txt
+  title: "Fuzz for endpoints under {url.url}/ (the root is forbidden)"
+  why: >
+    An API root that answers [[http-status|401/403]] still routes requests: individual endpoints below it are
+    often unauthenticated (status, info, health, device, users) and can leak versions,
+    serial numbers or data.
+  learn: https://book.hacktricks.xyz/network-services-pentesting/pentesting-web/web-api-pentesting
+  priority: 72
+
+# Same two by IP, only while the box has no hostname (otherwise the hostname URLs cover them).
+- id: web.inspect-page-ip
+  phase: enumeration
+  requires_state: { has_hostname: false }
+  when:
+    finding: url
+    match: { status: 200, title: { exists: true }, url: { regex: '^https?://\d+\.\d+\.\d+\.\d+[:/]' } }
+  suggest:
+    tool: page-inspect
+    with: { url: "{url.url}" }
+  title: "Read the source of {url.url} (product, version, hints, hidden endpoints)"
+  why: >
+    The page itself is the best fingerprint of a custom app: the title names the product, the
+    [[source-code-review|source]] can carry a version, tooltips and comments leave hints, and forms and JavaScript
+    call endpoints that no wordlist will find.
+  priority: 88
+
+- id: web.api-fuzz-ip
+  phase: enumeration
+  requires_state: { has_hostname: false }
+  when:
+    finding: url
+    match: { url: { regex: '^https?://\d+\.\d+\.\d+\.\d+[:/].*/api$' }, status: [401, 403] }
+  suggest:
+    group: dir-bruteforce
+    with:
+      url: "{url.url}/"
+      wordlist: /usr/share/seclists/Discovery/Web-Content/api/api-endpoints.txt
+  title: "Fuzz for endpoints under {url.url}/ (the root is forbidden)"
+  why: "An API root that answers 401/403 still routes requests: endpoints below it are often open."
+  priority: 72

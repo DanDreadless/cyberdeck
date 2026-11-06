@@ -1,0 +1,36 @@
+id: tcpdump
+name: tcpdump (read pcap)
+description: Read a packet capture file (no live capture, no root needed)
+category: forensics
+safety: safe
+detect:
+  binary: tcpdump
+  apt: tcpdump
+  version_cmd: ["tcpdump", "--version"]
+  version_regex: 'tcpdump version (\S+)'
+inputs:
+  file:
+    type: path
+    label: Capture file
+    help: "A .pcap/.pcapng file, relative to the box folder or absolute."
+options:
+  - id: ascii
+    flag: -A
+    type: bool
+    default: false
+    label: Show payload as text (-A)
+    help: "Print packet contents as ASCII (finds cleartext logins in HTTP, FTP, telnet)."
+  - id: filter
+    type: string
+    label: Filter (BPF)
+    help: "Only matching packets, e.g. 'tcp port 21' or 'host 10.10.14.7'."
+command:
+  - tcpdump
+  - -nn
+  - -r
+  - "{file}"
+  - "{opt.ascii}"
+  - "{extra}"
+  - "{opt.filter}"
+timeout: 300
+learn: https://www.kali.org/tools/tcpdump/

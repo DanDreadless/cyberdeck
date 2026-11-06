@@ -1,0 +1,72 @@
+id: rpcclient-enum
+name: rpcclient (enumerate)
+description: Ask a Windows/Samba host over MS-RPC for its users, groups and password policy
+category: rpc
+safety: intrusive
+ports: [445, 139]
+detect:
+  binary: rpcclient
+  apt: smbclient
+  version_cmd: ["rpcclient", "--version"]
+  version_regex: 'Version (\S+)'
+  help_cmd: ["rpcclient", "--help"]
+inputs:
+  target:
+    from: target_ip
+    label: Target
+    help: "Windows or Samba host (rpcclient talks MS-RPC over SMB, port 445/139)."
+options:
+  - id: auth
+    type: choice
+    choices: ["null", guest, user]
+    default: "null"
+    render_map:
+      "null": ["-U", "", "-N"]
+      guest: ["-U", "guest%"]
+      user: []
+    label: Login as
+    help: "null = anonymous session, guest = the guest account, user = the login below."
+  - id: login
+    flag: -U
+    type: string
+    label: Login (-U)
+    help: "With 'Login as: user': DOMAIN/user%password, e.g. box.htb/svc_web%Welcome1. Shown in the command line and job log."
+  - id: commands
+    flag: -c
+    type: string
+    default: "enumdomusers;enumdomgroups;querydominfo;getdompwinfo;srvinfo"
+    label: Commands (-c)
+    help: "rpcclient commands, separated by ;. Others: queryuser <rid>, querydispinfo (user descriptions often hold passwords), enumprivs, netshareenumall, lsaenumsid."
+presets:
+  descriptions: { commands: "querydispinfo" }
+  shares: { commands: "netshareenumall" }
+command:
+  - rpcclient
+  - "{opt.auth}"
+  - "{opt.login}"
+  - "{opt.commands}"
+  - "{extra}"
+  - "{target}"
+timeout: 300
+outputs: []
+parser: lines_regex
+parser_config:
+  patterns:
+    # enumdomusers: user:[svc_backup] rid:[0x44f]
+    - regex: '^user:\[(?P<name>[^\]]+)\] rid:\[0x[0-9a-fA-F]+\]'
+      type: user
+      tags: [rpc]
+      confidence: 0.9
+    # querydispinfo: index: 0x1 RID: 0x44f acb: 0x210 Account: svc_backup Name: ... Desc: ...
+    - regex: 'Account:\s+(?P<name>\S+)\s+Name:'
+      type: user
+      tags: [rpc]
+      confidence: 0.9
+notes: "Null sessions are often refused on modern Windows (NT_STATUS_ACCESS_DENIED); try guest, or a login once you have one. Read querydispinfo descriptions: they often contain passwords."
+learn: https://book.hacktricks.xyz/network-services-pentesting/pentesting-smb/rpcclient-enumeration
+teach:
+  does: >
+    Asks a Windows or Samba host over [[rpc|RPC]] for its users, groups and password policy,
+    using an anonymous session ([[null-session]]).
+  look_for: >
+    Usernames, and account descriptions: admins sometimes leave passwords there.

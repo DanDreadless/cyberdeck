@@ -1,0 +1,50 @@
+{
+    "info": {
+        "args": "/usr/lib/python3/dist-packages/dirsearch/dirsearch.py -u http://lantern.htb/ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -e php,txt -O json -o dirsearch.json -t 10",
+        "time": "2026-11-04 10:24:43"
+    },
+    "results": [
+        {
+            "contentLength": 0,
+            "contentType": "text/html",
+            "redirect": "http://lantern.htb/uploads/",
+            "status": 301,
+            "url": "http://lantern.htb/uploads"
+        },
+        {
+            "contentLength": 0,
+            "contentType": "text/html",
+            "redirect": "http://lantern.htb/admin/",
+            "status": 301,
+            "url": "http://lantern.htb/admin"
+        },
+        {
+            "contentLength": 204,
+            "contentType": "application/zip",
+            "redirect": "",
+            "status": 200,
+            "url": "http://lantern.htb/backup.zip"
+        },
+        {
+            "contentLength": 36,
+            "contentType": "text/plain",
+            "redirect": "",
+            "status": 200,
+            "url": "http://lantern.htb/robots.txt"
+        },
+        {
+            "contentLength": 59,
+            "contentType": "text/html",
+            "redirect": "",
+            "status": 200,
+            "url": "http://lantern.htb/login.php"
+        },
+        {
+            "contentLength": 239,
+            "contentType": "text/html",
+            "redirect": "",
+            "status": 200,
+            "url": "http://lantern.htb/index.php"
+        }
+    ]
+}

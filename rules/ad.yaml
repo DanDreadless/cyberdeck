@@ -1,0 +1,32 @@
+# Active Directory rules: a box with Kerberos (88) is almost always a domain controller.
+# Format: docs/RULES.md.
+- id: ad.asrep-roast
+  phase: foothold
+  requires_state: { kinds: [kerberos], has_domain: true }
+  suggest:
+    tool: impacket-GetNPUsers
+    with: { users: loot/users.txt }
+  title: "AS-REP roast the users in loot/users.txt against {domain}"
+  why: >
+    Accounts with [[kerberos|Kerberos]] pre-authentication turned off hand out a [[hash]] you can crack offline,
+    no password needed. Put the usernames you found (rpcclient, lookupsid, netexec --rid-brute,
+    a website's staff page) one per line in loot/users.txt first.
+  learn: https://book.hacktricks.xyz/windows-hardening/active-directory-methodology/asreproast
+  priority: 60
+
+- id: ad.kerberoast
+  phase: foothold
+  requires_state: { kinds: [kerberos], has_domain: true }
+  when:
+    finding: credential
+    match: { kind: password }
+  suggest:
+    tool: impacket-GetUserSPNs
+    with: { user: "{credential.user}", password: "{credential.secret}" }
+  title: "Kerberoast {domain} as {credential.user}"
+  why: >
+    Any domain login can ask for service tickets of accounts with an SPN. Those tickets are
+    encrypted with the service account's password, so they [[hash-cracking|crack]] offline (hashcat -m 13100);
+    service accounts often have weak passwords and high privileges.
+  learn: https://book.hacktricks.xyz/windows-hardening/active-directory-methodology/kerberoast
+  priority: 70

@@ -1,0 +1,27 @@
+id: gdb
+name: gdb (batch overview)
+description: List a binary's functions and entry point without an interactive session
+category: linux-privesc
+safety: safe
+detect:
+  binary: gdb
+  apt: gdb
+  version_cmd: ["gdb", "--version"]
+  version_regex: 'GNU gdb .* (\d+\.\d+)'
+inputs:
+  file:
+    type: path
+    label: Binary
+    help: "Path to the file, relative to the box folder (e.g. loot/image.jpg) or absolute."
+command:
+  - gdb
+  - -batch
+  - -ex
+  - info files
+  - -ex
+  - info functions
+  - "{extra}"
+  - "{file}"
+timeout: 120
+notes: "Debugging is interactive: run gdb yourself in a terminal. This only prints an overview."
+learn: https://www.kali.org/tools/gdb/

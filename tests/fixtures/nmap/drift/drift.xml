@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<!-- Fictional box "drift" (anonymous FTP, no hostnames). -->
+<nmaprun scanner="nmap" args="nmap -sC -sV -Pn --reason -p21,22,80 -oA nmap/drift 10.129.50.5" start="1793880000" startstr="Wed Nov  4 12:00:00 2026" version="7.95" xmloutputversion="1.05">
+<host starttime="1793880001" endtime="1793880020"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.129.50.5" addrtype="ipv4"/>
+<hostnames>
+</hostnames>
+<ports>
+<port protocol="tcp" portid="21"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="ftp" product="vsftpd" version="3.0.3" ostype="Unix" method="probed" conf="10"><cpe>cpe:/a:vsftpd:vsftpd:3.0.3</cpe></service><script id="ftp-anon" output="Anonymous FTP login allowed (FTP code 230)&#xa;-rw-r--r--    1 0        0             187 Oct 20 12:00 notes.txt"/><script id="ftp-syst" output="&#xa;  STAT: &#xa;FTP server status:&#xa;     Connected to ::ffff:10.10.14.7&#xa;     vsFTPd 3.0.3 - secure, fast, stable&#xa;End of status"/></port>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="ssh" product="OpenSSH" version="7.9p1 Debian 10+deb10u2" extrainfo="protocol 2.0" ostype="Linux" method="probed" conf="10"><cpe>cpe:/a:openbsd:openssh:7.9p1</cpe><cpe>cpe:/o:linux:linux_kernel</cpe></service></port>
+<port protocol="tcp" portid="80"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="http" product="Apache httpd" version="2.4.38" extrainfo="(Debian)" method="probed" conf="10"><cpe>cpe:/a:apache:http_server:2.4.38</cpe></service><script id="http-title" output="Site doesn&apos;t have a title (text/html)."/><script id="http-server-header" output="Apache/2.4.38 (Debian)"/></port>
+<port protocol="tcp" portid="8080"><state state="filtered" reason="no-response" reason_ttl="0"/><service name="http-proxy" method="table" conf="3"/></port>
+</ports>
+</host>
+<runstats><finished time="1793880020" timestr="Wed Nov  4 12:00:20 2026" elapsed="20.00" exit="success"/><hosts up="1" down="0" total="1"/>
+</runstats>
+</nmaprun>

@@ -1,0 +1,51 @@
+# --- secrets: never commit ---------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+# HTB VPN configs contain your private key
+*.ovpn
+
+# --- target / loot data: never commit ----------------------------------
+targets/
+*.db
+*.db-wal
+*.db-shm
+loot/
+raw/
+nmap/
+# ...but keep sanitised test fixtures
+!tests/fixtures/nmap/
+!tests/fixtures/raw/
+
+# --- python / tooling ---------------------------------------------------
+__pycache__/
+*.egg-info/
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+
+# --- more things that must never be committed ----------------------------
+*.sqlite
+*.sqlite3
+*.kdbx
+*.pcap
+*.pcapng
+*.log
+id_rsa*
+id_ed25519*
+*.ppk
+.claude/
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# --- kept on the private (Gitea) repo only; scripts/publish-github.sh ------
+docs/
+CLAUDE.md

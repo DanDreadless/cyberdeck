@@ -1,0 +1,36 @@
+# A suggested first path through Hack The Box (docs/LEARNING-PLAN.md W8). Skills are technique
+# ids from learn/techniques.yaml. Box availability changes: Starting Point Tier 0 is free,
+# Tiers 1-2 and retired machines may need a subscription. Check app.hackthebox.com. The path is
+# a suggestion, not a spoiler: skills say what kind of thing you'll practise, not the steps.
+# Add your own paths in ~/.config/cyberdeck/paths/; turn this one off in Settings.
+
+- id: htb-beginner
+  title: "From zero to your first retired boxes"
+  description: >
+    Starting Point first (one service, one lesson each), then easy retired machines ordered
+    from single-step to a full chain (web foothold, user, root).
+  steps:
+    - { box: Meow, stage: "Starting Point Tier 0", os: linux, skills: [default-creds] }
+    - { box: Fawn, stage: "Starting Point Tier 0", os: linux, skills: [anonymous-ftp] }
+    - { box: Dancing, stage: "Starting Point Tier 0", os: windows, skills: [smb-shares] }
+    - { box: Redeemer, stage: "Starting Point Tier 0", os: linux, skills: [open-database] }
+    - { box: Appointment, stage: "Starting Point Tier 1", os: linux, skills: [sqli] }
+    - { box: Sequel, stage: "Starting Point Tier 1", os: linux, skills: [open-database] }
+    - { box: Crocodile, stage: "Starting Point Tier 1", os: linux, skills: [anonymous-ftp, dir-bruteforce] }
+    - { box: Responder, stage: "Starting Point Tier 1", os: windows, skills: [lfi, hash-cracking] }
+    - { box: Three, stage: "Starting Point Tier 1", os: linux, skills: [vhost-fuzzing, file-upload] }
+    - { box: Ignition, stage: "Starting Point Tier 1", os: linux, skills: [dir-bruteforce, default-creds] }
+    - { box: Archetype, stage: "Starting Point Tier 2", os: windows, skills: [smb-shares, config-file-creds] }
+    - { box: Oopsie, stage: "Starting Point Tier 2", os: linux, skills: [idor, file-upload, suid] }
+    - { box: Vaccine, stage: "Starting Point Tier 2", os: linux, skills: [anonymous-ftp, hash-cracking, sqli, sudo-misconfig] }
+    - { box: Lame, stage: "Retired easy", os: linux, skills: [public-exploit, smb-shares] }
+    - { box: Legacy, stage: "Retired easy", os: windows, skills: [public-exploit] }
+    - { box: Blue, stage: "Retired easy", os: windows, skills: [public-exploit] }
+    - { box: Jerry, stage: "Retired easy", os: windows, skills: [default-creds, file-upload] }
+    - { box: Bashed, stage: "Retired easy", os: linux, skills: [dir-bruteforce, sudo-misconfig, cron] }
+    - { box: Nibbles, stage: "Retired easy", os: linux, skills: [source-review, default-creds, file-upload, sudo-misconfig] }
+    - { box: Shocker, stage: "Retired easy", os: linux, skills: [dir-bruteforce, public-exploit, sudo-misconfig] }
+    - { box: Cap, stage: "Retired easy", os: linux, skills: [idor, password-reuse, capabilities] }
+    - { box: Busqueda, stage: "Retired easy", os: linux, skills: [public-exploit, config-file-creds, password-reuse, sudo-misconfig] }
+    - { box: Devvortex, stage: "Retired easy", os: linux, skills: [vhost-fuzzing, public-exploit, password-reuse, hash-cracking, sudo-misconfig] }
+    - { box: BoardLight, stage: "Retired easy", os: linux, skills: [vhost-fuzzing, default-creds, public-exploit, config-file-creds, password-reuse, suid] }

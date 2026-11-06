@@ -1,0 +1,73 @@
+id: mysql-query
+name: MySQL/MariaDB query
+description: Log in to a MySQL/MariaDB server and run one query (by default, list the databases)
+category: services
+safety: intrusive
+ports: [3306]
+detect:
+  binary: mysql
+  apt: default-mysql-client
+  version_cmd: ["mysql", "--version"]
+  version_regex: '(?:from|Ver) (\d[\w.-]*)'
+  help_cmd: ["mysql", "--help"]
+inputs:
+  target:
+    from: host
+    label: Target
+    help: "Database host."
+  user:
+    default: root
+    label: Username
+    help: "Database user."
+options:
+  - id: password
+    flag: "--password="
+    joined: true
+    type: string
+    label: Password
+    help: "Empty = try without a password. Shown in the command line and job log."
+  - id: port
+    flag: -P
+    type: int
+    default: 3306
+    label: Port (-P)
+    help: "MySQL port."
+  - id: database
+    flag: -D
+    type: string
+    label: Database (-D)
+    help: "Database to use for the query."
+  - id: query
+    flag: -e
+    type: string
+    default: "SHOW DATABASES;"
+    label: Query (-e)
+    help: "SQL to run, e.g. SHOW TABLES; or SELECT user,password FROM users;"
+  - id: skip_ssl
+    flag: --skip-ssl
+    type: bool
+    default: true
+    label: Skip TLS (--skip-ssl)
+    help: "Newer MariaDB clients insist on TLS, which most box servers don't offer."
+    advanced: true
+presets:
+  tables: { query: "SHOW TABLES;" }
+  users: { database: mysql, query: "SELECT user,host,authentication_string FROM user;" }
+command:
+  - mysql
+  - -h
+  - "{target}"
+  - "{opt.port}"
+  - -u
+  - "{user}"
+  - "{opt.password}"
+  - "{opt.database}"
+  - "{opt.skip_ssl}"
+  - --table
+  - "{opt.query}"
+  - "{extra}"
+timeout: 120
+outputs: []
+parser: none
+notes: "One query per run, output on the job's stdout. For an interactive session run it yourself: mysql -h <host> -u <user> -p --skip-ssl."
+learn: https://book.hacktricks.xyz/network-services-pentesting/pentesting-mysql

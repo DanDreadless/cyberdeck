@@ -1,0 +1,93 @@
+id: hydra
+name: Hydra
+description: Online password guessing against a login service (ssh, ftp, smb, http forms...)
+category: creds
+safety: bruteforce
+detect:
+  binary: hydra
+  apt: hydra
+  version_cmd: ["hydra", "-h"]
+  version_regex: 'Hydra v(\S+)'
+  help_cmd: ["hydra", "-h"]
+inputs:
+  target:
+    from: host
+    label: Target
+    help: "Host running the service."
+options:
+  - id: service
+    type: choice
+    choices: [ssh, ftp, smb, rdp, mysql, mssql, postgres, telnet, vnc, smtp, pop3, imap, http-get, http-post-form]
+    default: ssh
+    label: Service
+    help: "Login protocol. http-post-form needs the form spec in Extra args: '/login:user=^USER^&pass=^PASS^:F=Invalid'."
+  - id: port
+    flag: -s
+    type: int
+    label: Port (-s)
+    help: "Only if the service is not on its default port."
+  - id: login
+    flag: -l
+    type: string
+    label: Single username (-l)
+    help: "Try just this user. Leave empty to use the user list."
+  - id: users
+    flag: -L
+    type: wordlist
+    default: /usr/share/seclists/Usernames/top-usernames-shortlist.txt
+    label: User list (-L)
+    help: "Usernames to try (a short list of common names by default). Clear it when you set a single username."
+  - id: passwords
+    flag: -P
+    type: wordlist
+    default: /usr/share/seclists/Passwords/Common-Credentials/10k-most-common.txt
+    label: Password list (-P)
+    help: "Passwords to try (10k common ones by default; the rockyou preset is far slower online)."
+  - id: extra_checks
+    flag: -e
+    type: string
+    default: nsr
+    label: Extra checks (-e)
+    help: "n = empty password, s = password same as login, r = reversed login."
+  - id: stop_first
+    flag: -f
+    type: bool
+    default: true
+    label: Stop at first hit (-f)
+    help: "Stop once a valid login is found."
+  - id: tasks
+    flag: -t
+    type: int
+    default: 4
+    label: Parallel tasks (-t)
+    help: "Connections in parallel. Keep it low for ssh (servers drop fast connections)."
+    advanced: true
+presets:
+  rockyou: { passwords: "{wordlists.passwords}" }
+  big-users: { users: "{wordlists.users}" }
+command:
+  - hydra
+  - "{opt.login}"
+  - "{opt.users}"
+  - "{opt.passwords}"
+  - "{opt.extra_checks}"
+  - "{opt.stop_first}"
+  - "{opt.tasks}"
+  - "{opt.port}"
+  - -I
+  - -o
+  - "{out}/hydra.txt"
+  - "{target}"
+  - "{opt.service}"
+  - "{extra}"                 # last, so a module argument (http-post-form spec) follows the service
+timeout: 3600
+outputs:
+  - path: "{out}/hydra.txt"
+parser: lines_regex
+parser_config:
+  patterns:
+    - regex: '^\[\d+\]\[[\w-]+\]\s+host:\s+\S+\s+login:\s+(?P<user>\S+)\s+password:\s+(?P<secret>.*?)\s*$'
+      type: credential
+      confidence: 0.9
+notes: "Set either a single username or a user list, not both. For web forms, pick http-post-form and put the form spec in Extra args."
+learn: https://book.hacktricks.xyz/generic-methodologies-and-resources/brute-force

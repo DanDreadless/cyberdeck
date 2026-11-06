@@ -1,0 +1,6 @@
+admin                (Status: 301) [Size: 0] [--> http://lantern.htb/admin/]
+uploads              (Status: 301) [Size: 0] [--> http://lantern.htb/uploads/]
+backup.zip           (Status: 200) [Size: 204]
+index.php            (Status: 200) [Size: 239]
+login.php            (Status: 200) [Size: 59]
+robots.txt           (Status: 200) [Size: 36]

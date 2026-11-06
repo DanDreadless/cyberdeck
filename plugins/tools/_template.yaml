@@ -1,0 +1,98 @@
+# Cyberdeck tool template. Copy it into a category folder (web/, recon/, forensics/...), rename
+# it to <tool>.yaml, fill it in, then check it with:  cyberdeck tools check web/mytool.yaml
+# Files and folders starting with "_" (like this one) are never loaded.
+# Every field is explained below. Working examples: web/feroxbuster.yaml, forensics/strings.yaml.
+
+id: mytool                      # unique, lower case; what `cyberdeck run <id>` takes.
+                                # Multi-use tool? One file per mode, id <tool>-<mode>
+                                # (ffuf-dir, ffuf-vhost): each has its own inputs/parser/group.
+name: My Tool                   # shown in the UI
+description: One line on what it finds
+# category: web                 # optional: defaults to the folder this file is in
+safety: safe                    # safe | intrusive | bruteforce | exploit  (see below)
+# ports: [445, 139]             # ports it talks to: the Run dialog warns if none is open
+# group: dir-bruteforce         # ONLY if it's a drop-in alternative to tools already in that group
+# rank: 40                      # order inside the group (lower first)
+
+detect:
+  binary: mytool                # executable name on PATH
+  apt: mytool                   # Kali package, for the "sudo apt install" hint
+  version_cmd: ["mytool", "--version"]
+  version_regex: 'mytool (\S+)' # first group = version
+  # help_cmd: ["mytool", "-h"]  # default: <binary> --help
+
+# Inputs = what the tool works ON. They become {name} variables, are required unless
+# `required: false`, and appear first in the Run dialog. `from:` pre-fills them from findings:
+#   web_url (site URL, hostname once in /etc/hosts), web_url_ip, host (hostname or IP),
+#   hostname, domain, target_ip, open_tcp_ports.   No `from:` = the user types it.
+inputs:
+  url:
+    from: web_url
+    label: URL
+    help: "Where to start. Filled in from the web services found."
+  # file:
+  #   type: path                # a local file, relative to the box folder (loot/x.jpg)
+  #   label: File
+  #   help: "File to analyse."
+
+# Options = flags the user can change. Put each as ONE whole item "{opt.<id>}" in command:
+# it renders as [flag, value], just the flag for a true bool, or nothing when unset.
+# Never write the flag yourself as well ("-w", "{opt.wordlist}" passes -w twice).
+options:
+  - id: wordlist
+    flag: -w
+    type: wordlist              # bool | int | string | choice | path (or file) | wordlist
+    default: "{wordlists.dirs_small}"   # named lists: cyberdeck tools wordlists
+    label: Wordlist
+    help: "Words to try."
+  - id: threads
+    flag: -t
+    type: int
+    default: 20
+    label: Threads
+    help: "Parallel requests."
+    advanced: true              # hidden behind "Show advanced"
+  # - id: mode
+  #   flag: --mode
+  #   type: choice
+  #   choices: [fast, thorough]
+  #   default: fast
+  #   label: Mode
+  #   help: "..."
+  # - id: verbose
+  #   flag: -v
+  #   type: bool                # true -> "-v", false -> nothing
+  #   default: false
+  #   label: Verbose
+  #   help: "..."
+
+presets:                        # optional named option sets (Run dialog: preset dropdown)
+  quick: { threads: 10 }
+
+command:                        # argv list, never a shell string; no pipes or redirects
+  - mytool
+  - "{opt.wordlist}"
+  - "{opt.threads}"
+  - -o
+  - "{out}/mytool.txt"          # {out} = raw/<tool>-<timestamp> in the box folder
+  - "{extra}"                   # where the dialog's extra args go
+  - "{url}"
+# Other variables: {target.ip} {target.name} {hostname} {domain} {lhost} {wordlists.<name>}.
+# Variables can sit inside a longer argument ("--output={out}/x.json"); {opt.x} cannot.
+
+timeout: 900                    # seconds
+outputs:                        # files a parser reads (their folders are created for you)
+  - path: "{out}/mytool.txt"
+parser: none                    # none, lines_regex, jsonl, or a custom one (docs/PLUGINS.md)
+# parser_config: {}
+# notes: "Shown in the Run dialog, e.g. interactive tools: run it yourself."
+learn: https://www.kali.org/tools/
+
+# safety decides what may run without asking:
+#   safe       read-only recon (fingerprinting, dir/vhost discovery, local file analysis).
+#              Auto mode may chain it and an MCP client may run it.
+#   intrusive  noisy or state-changing (vuln scanners, logins to services, high-rate scans,
+#              interactive clients). Always needs you to confirm.
+#   bruteforce guessing credentials or cracking. Always needs you to confirm.
+#   exploit    exploitation, shells, payloads, ticket attacks. Always needs you to confirm.
+# When in doubt, pick the stricter tag.

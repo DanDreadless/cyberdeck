@@ -1,0 +1,24 @@
+# Recon rules: the nmap stages. Format: docs/RULES.md.
+- id: recon.versions
+  phase: recon
+  requires_state: { has_services: true, has_versions: false }
+  suggest:
+    tool: nmap-services
+  title: "Run nmap scripts + version detection on the open ports"
+  why: >
+    Stage 1 only tells you which [[port|ports]] are open. [[version-detection|Versions and default scripts]] tell you what is
+    actually running (web server, CMS, SMB signing, SSH version), which decides everything else.
+  learn: https://book.hacktricks.xyz/generic-methodologies-and-resources/pentesting-network
+  priority: 95
+
+- id: recon.udp
+  phase: recon
+  requires_state: { jobs_done: [nmap-services] }
+  suggest:
+    tool: nmap-udp
+  title: "Scan the top UDP ports (needs root)"
+  why: >
+    SNMP (161), TFTP (69) and DNS (53) only show up on [[tcp-udp|UDP]] and are easy to miss. [[snmp|SNMP]] with the
+    'public' community often leaks users, processes and passwords.
+  learn: https://book.hacktricks.xyz/network-services-pentesting/pentesting-snmp
+  priority: 20

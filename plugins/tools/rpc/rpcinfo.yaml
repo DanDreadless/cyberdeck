@@ -1,0 +1,33 @@
+id: rpcinfo
+name: rpcinfo (ONC RPC)
+description: List the ONC RPC programs a Unix host registers with rpcbind (port 111), e.g. NFS and mountd
+category: rpc
+safety: safe
+ports: [111]
+detect:
+  binary: rpcinfo
+  apt: rpcbind
+  help_cmd: ["rpcinfo", "-h"]
+inputs:
+  target:
+    from: target_ip
+    label: Target
+    help: "Host with rpcbind/portmapper (port 111) open."
+command:
+  - rpcinfo
+  - -p
+  - "{extra}"
+  - "{target}"
+timeout: 45
+outputs: []
+parser: lines_regex
+parser_config:
+  patterns:
+    # program vers proto   port  service
+    #  100003    3   tcp   2049  nfs
+    - regex: '^\s*\d+\s+\d+\s+(?P<proto>tcp|udp)\s+(?P<port>\d+)\s+(?P<name>[A-Za-z][\w-]*)\s*$'
+      type: service
+      tags: [rpcbind]
+      confidence: 0.6
+notes: "nfs and mountd in the list mean NFS shares: run showmount next."
+learn: https://book.hacktricks.xyz/network-services-pentesting/pentesting-rpcbind

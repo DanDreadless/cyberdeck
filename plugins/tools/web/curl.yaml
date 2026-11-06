@@ -1,0 +1,36 @@
+id: curl
+name: curl
+description: HTTP client for manual testing
+category: web
+safety: safe
+detect:
+  binary: curl
+  version_cmd:
+  - curl
+  - --version
+  help_cmd:
+  - curl
+  - --help
+  apt: curl
+inputs:
+  url:
+    from: web_url
+    label: URL
+    help: Authorized CTF/lab URL.
+options:
+- id: timeout
+  type: int
+  default: 15
+  label: Timeout
+  help: Maximum request duration in seconds.
+command:
+- curl
+- -i
+- -L
+- --max-time
+- '{opt.timeout}'
+- '{url}'
+- '{extra}'
+timeout: 900
+outputs: []
+learn: https://www.kali.org/tools/curl/

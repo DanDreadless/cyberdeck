@@ -1,0 +1,93 @@
+# Other services: DNS, SNMP, NFS, MySQL. Format: docs/RULES.md.
+- id: dns.zone-transfer
+  phase: enumeration
+  requires_state: { has_domain: true }
+  when:
+    finding: service
+    match: { kind: dns, state: open }
+  suggest:
+    tool: dnsrecon
+    preset: zone-transfer
+    with: { domain: "{domain}", nameserver: "{target.ip}" }
+  title: "Try a DNS zone transfer of {domain} from {target.ip}"
+  why: >
+    A server that allows [[dns|AXFR]] hands over every name in the zone: hidden [[vhost|vhosts]] (dev., admin.,
+    internal.) that no wordlist would guess.
+  learn: https://book.hacktricks.xyz/network-services-pentesting/pentesting-dns
+  priority: 70
+
+- id: dns.subdomains
+  phase: enumeration
+  requires_state: { has_domain: true }
+  when:
+    finding: service
+    match: { kind: dns, state: open }
+  suggest:
+    tool: dnsrecon
+    preset: brute
+    with: { domain: "{domain}", nameserver: "{target.ip}" }
+  title: "Brute-force subdomains of {domain} against the box's DNS server"
+  why: >
+    When the zone transfer is refused, asking the box's own DNS server for common names still
+    finds records that only exist internally.
+  learn: https://book.hacktricks.xyz/network-services-pentesting/pentesting-dns
+  priority: 45
+
+- id: snmp.walk
+  phase: enumeration
+  when:
+    finding: service
+    match: { kind: snmp, state: { regex: '^open' } }
+  suggest:
+    tool: snmpwalk
+    with: { target: "{target.ip}", community: public }
+  title: "Walk SNMP on {target.ip} with the 'public' community"
+  why: >
+    [[snmp|SNMP]] v1/v2c with the default community leaks running processes (with their command-line
+    arguments, often including passwords), installed software, users and network interfaces.
+  learn: https://book.hacktricks.xyz/network-services-pentesting/pentesting-snmp
+  priority: 75
+
+- id: nfs.exports
+  phase: enumeration
+  when:
+    finding: service
+    match: { kind: nfs }
+  suggest:
+    tool: showmount
+    with: { target: "{target.ip}" }
+  title: "List the NFS exports on {target.ip}"
+  why: >
+    [[nfs|NFS]] shares open to everyone can be mounted from Kali; home directories and backups on them
+    often hold SSH keys or config files with passwords.
+  learn: https://book.hacktricks.xyz/network-services-pentesting/nfs-service-pentesting
+  priority: 75
+
+- id: mysql.default-login
+  phase: enumeration
+  when:
+    finding: service
+    match: { kind: mysql, state: open }
+  suggest:
+    tool: mysql-query
+    with: { target: "{target.ip}", user: root, port: "{service.port}" }
+  title: "Try root with no password on MySQL ({target.ip}:{service.port})"
+  why: >
+    A database exposed to the network sometimes still has the default root login without a
+    password. One query tells you, and lists the databases if it works.
+  learn: https://book.hacktricks.xyz/network-services-pentesting/pentesting-mysql
+  priority: 40
+
+- id: mysql.creds
+  phase: foothold
+  when:
+    finding: credential
+    match: { kind: password }
+  requires_state: { kinds: [mysql] }
+  suggest:
+    tool: mysql-query
+    with: { target: "{target.ip}", user: "{credential.user}", password: "{credential.secret}" }
+  title: "Try {credential.user}'s password on MySQL ({target.ip})"
+  why: "Web apps' database passwords are often [[password-reuse|reused]] for the database login itself, and the other way round."
+  learn: https://book.hacktricks.xyz/network-services-pentesting/pentesting-mysql
+  priority: 60

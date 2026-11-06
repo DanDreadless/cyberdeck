@@ -1,0 +1,41 @@
+id: ssh
+name: ssh
+description: SSH client for authorized access
+category: services
+safety: intrusive
+detect:
+  binary: ssh
+  version_cmd:
+  - ssh
+  - --version
+  help_cmd:
+  - ssh
+  - --help
+  apt: openssh-client
+inputs:
+  target:
+    from: host
+    label: Target
+    help: Authorized CTF/lab host or address.
+options:
+- id: port
+  type: int
+  default: 22
+  label: Port
+  help: Service port.
+- id: user
+  type: string
+  default: ''
+  label: Username
+  help: Account name.
+command:
+- ssh
+- -p
+- '{opt.port}'
+- '{opt.user}@{target}'
+- '{extra}'
+timeout: 900
+outputs: []
+learn: https://www.kali.org/tools/ssh/
+notes: Interactive or context-dependent utility. Review the generated invocation and
+  run manually in the authorized lab; do not assume unattended execution.

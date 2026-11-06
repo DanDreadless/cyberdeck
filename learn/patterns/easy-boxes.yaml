@@ -1,0 +1,126 @@
+# Built-in "Stuck?" level-2 hints (docs/LEARNING-PLAN.md W5): what usually works on easy boxes
+# in a given situation. General ideas only, never a specific box's answer. Matched on box state
+# (the rules' requires_state keys plus the checklist extras, src/cyberdeck/core/methodology.py).
+# Turn them off in Settings; yours in ~/.config/cyberdeck/patterns/ load anyway.
+
+- id: hint.scan-first
+  when: { has_services: false }
+  title: "Start with the scan"
+  hint: >
+    Nothing is known yet. Every box starts the same way: scan all TCP [[port|ports]], then ask
+    the open ones what they are ([[version-detection]]). Press c.
+  priority: 100
+
+- id: hint.only-ssh-and-web
+  when: { has_web: true, kinds: [ssh], has_credentials: false }
+  title: "SSH plus a website means the website is the way in"
+  hint: >
+    [[ssh|SSH]] is almost never the first door. Spend your time on the site: its name and
+    version, hidden paths, other [[vhost|virtual hosts]], and anything that takes your input.
+    SSH comes back once you find a password or a key.
+  priority: 90
+
+- id: hint.hostname
+  when: { has_hostname: true, hostname_in_hosts: false }
+  title: "The site wants its name"
+  hint: >
+    A [[hostname]] is known but isn't in [[etc-hosts|/etc/hosts]] yet, so you may be looking at
+    a redirect or a default page instead of the real site. Add it (h) and look again.
+  priority: 95
+
+- id: hint.vhosts
+  when: { has_web: true, has_domain: true, tools_done: [web-fingerprint] }
+  title: "Look beside the main site"
+  hint: >
+    When the main site looks static or boring, the real app is often on another name: dev.,
+    admin., staging., or a word from the site itself. Fuzz the Host header ([[vhost]]) with a
+    bigger list, and read the page for names it mentions.
+  priority: 80
+
+- id: hint.versioned-product
+  when: { has_versions: true, has_credentials: false }
+  title: "An exact version is a lead"
+  hint: >
+    On easy boxes, a product with a known version very often has a public [[cve|exploit]] or a
+    [[default-credentials|default login]]. Search "<product> <version> exploit" and "<product>
+    default password", and check the version range really matches.
+  priority: 85
+
+- id: hint.login-page
+  when: { has_web: true, has_urls: true, has_credentials: false }
+  title: "A login page you can't get past"
+  hint: >
+    Try the product's default login, then usernames you've seen (staff pages, emails, file
+    metadata) with simple passwords. Read the page source for hints. If there's a "forgot
+    password" or "register" link, see what it reveals. Don't brute-force big lists on HTB.
+  priority: 75
+
+- id: hint.git-and-backups
+  when: { has_web: true, tools_done: [dir-bruteforce] }
+  title: "Source code beats guessing"
+  hint: >
+    If directory brute-forcing found little, check for an exposed /.git/ ([[git-exposure]])
+    and backup files (index.php.bak, site.zip, .old). Source code shows you how the app works
+    and often contains a password.
+  priority: 70
+
+- id: hint.smb-files
+  when: { kinds: [smb], has_shares: true }
+  title: "Read what's on the shares"
+  hint: >
+    A readable share is rarely decoration. Download everything (recurse ON, mget *) and read
+    configs, scripts, documents and metadata. Usernames and passwords hide in unexpected
+    files ([[smb]]).
+  priority: 80
+
+- id: hint.found-password
+  when: { has_credentials: true, foothold: false }
+  title: "You have a password: use it everywhere"
+  hint: >
+    [[password-reuse|Reuse]] is the most common user step. Try it with every username on every
+    login: the web app, SSH, SMB, WinRM, the database. Mark where it works in Loot (m).
+  priority: 98
+
+- id: hint.hash
+  when: { has_hashes: true }
+  title: "Crack it, don't stare at it"
+  hint: >
+    Identify the hash type, then crack it with rockyou ([[hash-cracking]]). HTB hashes meant to
+    be cracked fall in minutes; if one doesn't, it's probably not the path.
+  priority: 90
+
+- id: hint.users-no-passwords
+  when: { has_users: true, has_credentials: false }
+  title: "Usernames but no passwords"
+  hint: >
+    Look for where passwords leak: config files, shares, page source, old backups, SNMP. On a
+    Windows domain, check [[kerberos|Kerberos]] for accounts that hand out crackable hashes
+    without a password (AS-REP roasting).
+  priority: 70
+
+- id: hint.linux-foothold
+  when: { foothold: true, root_flag: false, not_os: [windows] }
+  title: "You're in: enumerate before you exploit"
+  hint: >
+    The classic order: [[sudo|sudo -l]], your groups, config files in the web root (passwords
+    for the next user), home directories, SUID files, internal-only ports, cron. Most easy
+    boxes use one of these ([[privilege-escalation]]). The checklist (k) has the commands.
+  priority: 95
+
+- id: hint.windows-foothold
+  when: { foothold: true, root_flag: false, os: [windows] }
+  title: "You're in on Windows: check privileges first"
+  hint: >
+    whoami /all first: SeImpersonate, SeBackup and groups like Backup Operators are known
+    routes up. Then saved credentials, PowerShell history and third-party services
+    ([[privilege-escalation]]).
+  priority: 95
+
+- id: hint.step-back
+  when: { has_services: true }
+  title: "Step back and list what you know"
+  hint: >
+    Write down every port, product, name, user and page you've found, and next to each what
+    you tried. The way in is usually something already on that list you didn't follow far
+    enough. Ten minutes on a [[rabbit-hole]] is fine; an hour usually isn't.
+  priority: 10

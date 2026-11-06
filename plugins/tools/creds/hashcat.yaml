@@ -1,0 +1,76 @@
+id: hashcat
+name: hashcat
+description: Crack password hashes offline with a wordlist (dictionary attack)
+category: creds
+safety: bruteforce
+detect:
+  binary: hashcat
+  apt: hashcat
+  version_cmd: ["hashcat", "--version"]
+  version_regex: 'v?(\d\S*)'
+  help_cmd: ["hashcat", "--help"]
+inputs:
+  hashes:
+    type: path
+    label: Hash file
+    help: "File with one hash per line, relative to the box folder (e.g. loot/hashes.txt)."
+options:
+  - id: mode
+    flag: -m
+    type: int
+    label: Hash mode (-m)
+    help: "Hash type, e.g. 0 MD5, 1000 NTLM, 1800 sha512crypt, 3200 bcrypt, 13100 Kerberoast, 18200 AS-REP. Empty = let hashcat detect it (run hashid if unsure)."
+  - id: wordlist
+    type: wordlist
+    default: "{wordlists.passwords}"
+    label: Wordlist
+    help: "Candidate passwords (rockyou by default)."
+  - id: rules
+    flag: -r
+    type: path
+    label: Rules file (-r)
+    help: "Mangle each word, e.g. /usr/share/hashcat/rules/best66.rule. Empty = words as they are."
+  - id: username
+    flag: --username
+    type: bool
+    default: false
+    label: "Lines start with user: (--username)"
+    help: "Turn on when each line is user:hash."
+    advanced: true
+  - id: force
+    flag: --force
+    type: bool
+    default: false
+    label: Force (--force)
+    help: "Ignore warnings (often needed on a VM without a GPU; slower and less safe)."
+    advanced: true
+presets:
+  best66: { rules: /usr/share/hashcat/rules/best66.rule }
+command:
+  - hashcat
+  - -a
+  - "0"
+  - "{opt.mode}"
+  - "{opt.rules}"
+  - "{opt.username}"
+  - "{opt.force}"
+  - -o
+  - "{out}/cracked.txt"
+  - "--potfile-path={out}/hashcat.pot"
+  - --quiet
+  - "{extra}"
+  - "{hashes}"
+  - "{opt.wordlist}"
+timeout: 7200
+outputs:
+  - path: "{out}/cracked.txt"
+parser: lines_regex
+parser_config:
+  patterns:
+    # outfile lines are hash:plain; the password is after the last colon.
+    - regex: '^(?P<value>.+):(?P<cracked>[^:]*)$'
+      type: hash
+      tags: [cracked]
+      confidence: 1.0
+notes: "Uses its own potfile per run, so hashes already cracked in ~/.local/share/hashcat are cracked again. On a VM without a GPU it can need --force (advanced)."
+learn: https://hashcat.net/wiki/doku.php?id=example_hashes

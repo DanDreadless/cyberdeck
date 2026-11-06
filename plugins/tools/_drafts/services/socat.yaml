@@ -1,0 +1,33 @@
+id: socat
+name: socat
+description: Multipurpose relay utility
+category: services
+safety: intrusive
+detect:
+  binary: socat
+  version_cmd:
+  - socat
+  - --version
+  help_cmd:
+  - socat
+  - --help
+  apt: socat
+inputs:
+  target:
+    from: host
+    label: Target
+    help: Authorized CTF/lab host or address.
+options:
+- id: port
+  type: int
+  default: 1234
+  label: Port
+  help: TCP port.
+command:
+- socat
+- '-'
+- TCP:{target}:{opt.port}
+- '{extra}'
+timeout: 900
+outputs: []
+learn: https://www.kali.org/tools/socat/

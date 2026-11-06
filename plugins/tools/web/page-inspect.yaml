@@ -1,0 +1,54 @@
+id: page-inspect
+name: Page inspect
+description: Read a page's source like a person would - product and version, hints, and the endpoints its forms and JavaScript call
+category: web
+safety: safe
+detect:
+  binary: curl
+  apt: curl
+  version_cmd: ["curl", "--version"]
+  version_regex: 'curl (\S+)'
+  help_cmd: ["curl", "--help"]
+inputs:
+  url:
+    from: web_url
+    label: URL
+    help: "Page to read (a login page is the usual one). Redirects are followed."
+options:
+  - id: timeout
+    flag: --max-time
+    type: int
+    default: 20
+    label: Timeout (s)
+    help: "Give up after this many seconds."
+  - id: insecure
+    flag: -k
+    type: bool
+    default: true
+    label: Ignore TLS errors (-k)
+    help: "Box certificates are self-signed."
+command:
+  - curl
+  - -s
+  - -i
+  - -L
+  - "{opt.timeout}"
+  - "{opt.insecure}"
+  - -o
+  - "{out}/page.txt"
+  - "{extra}"
+  - "{url}"
+timeout: 60
+outputs:
+  - path: "{out}/page.txt"
+parser: html_inspect
+notes: "One GET (plus redirects). Records the product named in the title (searchsploit is suggested next), version strings, hints in tooltips/placeholders/comments (shown as questions in Next steps), and form/JavaScript endpoints that directory brute-forcing can't find. The page is saved in raw/page-inspect-*/page.txt."
+learn: https://book.hacktricks.xyz/network-services-pentesting/pentesting-web#web-tech-tricks
+teach:
+  does: >
+    Reads one page's HTML and JavaScript the way you would with view-source
+    ([[source-code-review|reading source code]]).
+  look_for: >
+    The product name and version, comments and tooltips with hints
+    ([[default-credentials|default passwords]]...), and endpoints the page's forms and scripts
+    call.

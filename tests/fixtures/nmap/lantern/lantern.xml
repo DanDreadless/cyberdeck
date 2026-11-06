@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<!-- Fictional box "lantern" (Linux web). Stage 2: -sC -sV on open ports. -->
+<nmaprun scanner="nmap" args="nmap -sC -sV -Pn --reason -p22,80,9091 -oA nmap/lantern 10.129.231.15" start="1793872860" startstr="Wed Nov  4 10:01:00 2026" version="7.95" xmloutputversion="1.05">
+<scaninfo type="syn" protocol="tcp" numservices="3" services="22,80,9091"/>
+<verbose level="0"/>
+<debugging level="0"/>
+<host starttime="1793872861" endtime="1793872890"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.129.231.15" addrtype="ipv4"/>
+<hostnames>
+</hostnames>
+<ports>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="ssh" product="OpenSSH" version="8.9p1 Ubuntu 3ubuntu0.10" extrainfo="Ubuntu Linux; protocol 2.0" ostype="Linux" method="probed" conf="10"><cpe>cpe:/a:openbsd:openssh:8.9p1</cpe><cpe>cpe:/o:linux:linux_kernel</cpe></service><script id="ssh-hostkey" output="&#xa;  256 3e:ea:45:4b:c5:d1:6d:6f:e2:d4:d1:3b:0a:3d:a9:4f (ECDSA)&#xa;  256 64:cc:75:de:4a:e6:a5:b4:73:eb:3f:1b:cf:b4:e3:94 (ED25519)"/></port>
+<port protocol="tcp" portid="80"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="http" product="nginx" version="1.18.0" extrainfo="Ubuntu" ostype="Linux" method="probed" conf="10"><cpe>cpe:/a:igor_sysoev:nginx:1.18.0</cpe><cpe>cpe:/o:linux:linux_kernel</cpe></service><script id="http-server-header" output="nginx/1.18.0 (Ubuntu)"><elem>nginx/1.18.0 (Ubuntu)</elem></script><script id="http-title" output="Did not follow redirect to http://lantern.htb/"><elem key="redirect_url">http://lantern.htb/</elem></script></port>
+<port protocol="tcp" portid="9091"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="xmltec-xmlmail" method="table" conf="3"/><script id="fingerprint-strings" output="&#xa;  GetRequest: &#xa;    HTTP/1.1 400 Bad Request"/></port>
+</ports>
+<times srtt="9300" rttvar="1100" to="100000"/>
+</host>
+<runstats><finished time="1793872890" timestr="Wed Nov  4 10:01:30 2026" summary="Nmap done at Wed Nov  4 10:01:30 2026; 1 IP address (1 host up) scanned in 30.12 seconds" elapsed="30.12" exit="success"/><hosts up="1" down="0" total="1"/>
+</runstats>
+</nmaprun>

@@ -1,0 +1,26 @@
+id: foremost
+name: foremost
+description: Carve files out of disk images and memory dumps by their headers
+category: forensics
+safety: safe
+detect:
+  binary: foremost
+  apt: foremost
+  version_cmd: ["foremost", "-V"]
+  version_regex: 'version (\S+)'
+inputs:
+  file:
+    type: path
+    label: Image file
+    help: "Path to the file, relative to the box folder (e.g. loot/image.jpg) or absolute."
+command:
+  - foremost
+  - -i
+  - "{file}"
+  - -o
+  - "{out}/foremost"
+  - "{extra}"
+timeout: 1800
+outputs:
+  - path: "{out}/foremost"
+learn: https://www.kali.org/tools/foremost/

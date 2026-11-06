@@ -1,0 +1,110 @@
+id: netexec-smb
+name: NetExec (SMB)
+description: Check an SMB login (null, guest or a user) and list shares with your access
+category: windows-ad
+safety: bruteforce
+ports: [445, 139]
+detect:
+  binary: nxc
+  apt: netexec
+  version_cmd: ["nxc", "--version"]
+  version_regex: '^(\d\S*)'
+  help_cmd: ["nxc", "smb", "-h"]
+inputs:
+  target:
+    from: target_ip
+    label: Target
+    help: "SMB host (port 445)."
+options:
+  - id: auth
+    type: choice
+    choices: ["null", guest, user]
+    default: "null"
+    render_map:
+      "null": ["-u", "", "-p", ""]
+      guest: ["-u", "guest", "-p", ""]
+      user: []
+    label: Login as
+    help: "null = anonymous session, guest = the guest account, user = the username/password below."
+  - id: user
+    flag: -u
+    type: string
+    label: Username (-u)
+    help: "With 'Login as: user'. A file of usernames also works (that makes it password spraying)."
+  - id: password
+    flag: -p
+    type: string
+    label: Password (-p)
+    help: "With 'Login as: user'. A file of passwords also works."
+  - id: hash
+    flag: -H
+    type: string
+    label: NT hash (-H)
+    help: "Pass-the-hash instead of a password."
+    advanced: true
+  - id: local_auth
+    flag: --local-auth
+    type: bool
+    default: false
+    label: Local account (--local-auth)
+    help: "Log in as a local account instead of a domain one."
+    advanced: true
+  - id: shares
+    flag: --shares
+    type: bool
+    default: true
+    label: List shares (--shares)
+    help: "Show shares and your READ/WRITE access."
+  - id: users
+    flag: --users
+    type: bool
+    default: false
+    label: List domain users (--users)
+    help: "Needs a working login."
+  - id: rid_brute
+    flag: --rid-brute
+    type: bool
+    default: false
+    label: RID brute force (--rid-brute)
+    help: "Find users and groups by RID; often works with a guest or null session."
+presets:
+  find-users: { auth: guest, rid_brute: true, shares: false }
+command:
+  - nxc
+  - smb
+  - "{target}"
+  - "{opt.auth}"
+  - "{opt.user}"
+  - "{opt.password}"
+  - "{opt.hash}"
+  - "{opt.local_auth}"
+  - "{opt.shares}"
+  - "{opt.users}"
+  - "{opt.rid_brute}"
+  - "{extra}"
+timeout: 600
+outputs: []
+parser: lines_regex
+parser_config:
+  patterns:
+    # SMB  10.10.11.5  445  DC01  IPC$  READ  Remote IPC
+    - regex: '^SMB\s+(?P<host>\S+)\s+\d+\s+\S+\s+(?P<name>[^\s\[]\S*)\s+(?P<perms>READ,WRITE|READ|WRITE)\b'
+      type: share
+      confidence: 0.9
+    # SMB  10.10.11.5  445  DC01  [+] box.htb\guest:   (a login that worked)
+    - regex: '^SMB\s+\S+\s+\d+\s+\S+\s+\[\+\]\s+(?P<realm>[^\\\s]+)\\(?P<user>[^:\s]+):(?P<secret>\S*)'
+      type: credential
+      confidence: 0.9
+    # --rid-brute: 1103: BOX\svc_backup (SidTypeUser)
+    - regex: '\d+:\s+(?P<realm>[^\\\s]+)\\(?P<name>\S+)\s+\(SidTypeUser\)'
+      type: user
+      confidence: 0.9
+notes: "Set 'Login as' to user when you give a username. Lists of users/passwords turn this into password spraying: mind lockout."
+learn: https://www.netexec.wiki/smb-protocol/enumeration
+teach:
+  does: >
+    Tries one SMB login (empty, guest or a user you found) and lists which [[smb|shares]] it
+    can read or write.
+  look_for: >
+    The host and domain name (add them to /etc/hosts), READ or WRITE next to a share, and
+    '(Pwn3d!)', which means that login is a local admin.

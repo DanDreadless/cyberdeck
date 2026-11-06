@@ -1,0 +1,83 @@
+id: ffuf-vhost
+name: ffuf vhost fuzz
+description: Find virtual hosts (subdomains) by fuzzing the Host header
+category: web
+group: vhost-fuzz
+safety: safe
+detect:
+  binary: ffuf
+  version_cmd: ["ffuf", "-V"]
+  version_regex: 'ffuf version: (\S+)'
+  help_cmd: ["ffuf", "-h"]
+  apt: ffuf
+inputs:
+  url:
+    from: web_url_ip
+    label: URL (by IP)
+    help: "Requests go to the IP; only the Host header changes."
+  domain:
+    from: domain
+    label: Domain
+    help: "Each word is tried as <word>.<domain>, e.g. dev.box.htb."
+options:
+  - id: wordlist
+    flag: -w
+    type: wordlist
+    default: "{wordlists.vhosts}"
+    label: Wordlist
+    help: "Subdomain names to try."
+  - id: autocalibrate
+    flag: -ac
+    type: bool
+    default: true
+    label: Auto-calibrate (-ac)
+    help: "Learn what a 'no such vhost' answer looks like and hide it. Turn off if you use -fs."
+  - id: filter_size
+    flag: -fs
+    type: string
+    label: Filter size (-fs)
+    help: "Hide answers of this size (the size of the default page). Alternative to -ac."
+  - id: filter_codes
+    flag: -fc
+    type: string
+    label: Filter status codes (-fc)
+    advanced: true
+    help: "Hide these status codes, e.g. 301,302 when the default answer is a redirect."
+  - id: threads
+    flag: -t
+    type: int
+    default: 40
+    label: Threads
+    advanced: true
+    help: "Concurrent requests."
+presets:
+  thorough: { wordlist: "{wordlists.vhosts_large}" }
+command:
+  - ffuf
+  - -u
+  - "{url}"
+  - -H
+  - "Host: FUZZ.{domain}"
+  - "{opt.wordlist}"
+  - "{opt.autocalibrate}"
+  - "{opt.filter_size}"
+  - "{opt.filter_codes}"
+  - "{opt.threads}"
+  - -of
+  - json
+  - -o
+  - "{out}/ffuf-vhost.json"
+  - -noninteractive
+  - "{extra}"
+timeout: 1200
+outputs:
+  - path: "{out}/ffuf-vhost.json"
+parser: ffuf_vhost
+learn: https://book.hacktricks.xyz/pentesting-web/domain-subdomain-takeover#virtual-hosts
+teach:
+  does: >
+    Sends the same request with a different Host header each time (dev.box.htb,
+    admin.box.htb...) to find sites hidden on the same IP ([[vhost|virtual hosts]]).
+  look_for: >
+    Any name whose answer size differs from the default page. Add each hit to
+    [[etc-hosts|/etc/hosts]]: it's usually a separate app.

@@ -1,0 +1,33 @@
+id: binwalk
+name: binwalk
+description: Find and extract files embedded in a file (firmware, images, archives)
+category: forensics
+safety: safe
+detect:
+  binary: binwalk
+  apt: binwalk
+  version_cmd: ["binwalk", "--help"]
+  version_regex: 'Binwalk v(\S+)'
+inputs:
+  file:
+    type: path
+    label: File
+    help: "Path to the file, relative to the box folder (e.g. loot/image.jpg) or absolute."
+options:
+  - id: extract
+    flag: -e
+    type: bool
+    default: true
+    label: Extract (-e)
+    help: "Carve out what it finds into the job's output folder."
+command:
+  - binwalk
+  - "{opt.extract}"
+  - -C
+  - "{out}/binwalk"
+  - "{extra}"
+  - "{file}"
+timeout: 600
+outputs:
+  - path: "{out}/binwalk"
+learn: https://www.kali.org/tools/binwalk/

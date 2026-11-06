@@ -1,0 +1,45 @@
+id: impacket-lookupsid
+name: lookupsid (RID brute force)
+description: Find domain/local users and groups by walking RIDs over MS-RPC (LSARPC)
+category: rpc
+safety: intrusive
+ports: [445, 139]
+detect:
+  binary: impacket-lookupsid
+  apt: impacket-scripts
+  version_cmd: ["impacket-lookupsid", "-h"]
+  version_regex: 'Impacket v(\S+)'
+  help_cmd: ["impacket-lookupsid", "-h"]
+inputs:
+  login:
+    default: guest
+    label: Login
+    help: "Account to bind with: guest (no password) works on many boxes. For a real login use user:password (shown in the command line and job log)."
+  target:
+    from: target_ip
+    label: Target
+    help: "Windows host or DC (SMB, port 445)."
+options:
+  - id: max_rid
+    type: int
+    default: 4000
+    label: Highest RID
+    help: "Domain users start at 1000; 4000 covers most boxes."
+command:
+  - impacket-lookupsid
+  - -no-pass
+  - "{extra}"
+  - "{login}@{target}"
+  - "{opt.max_rid}"
+timeout: 600
+outputs: []
+parser: lines_regex
+parser_config:
+  patterns:
+    # 1103: BOX\svc_backup (SidTypeUser)
+    - regex: '^\d+:\s+(?P<realm>[^\\\s]+)\\(?P<name>[^\s(]+(?: [^\s(]+)*)\s+\(SidTypeUser\)'
+      type: user
+      tags: [rid-brute]
+      confidence: 0.9
+notes: "-no-pass is set, so a login with a password must be typed as user:password. Save the users to loot/users.txt for AS-REP roasting and spraying."
+learn: https://book.hacktricks.xyz/network-services-pentesting/pentesting-smb#enumerate-users

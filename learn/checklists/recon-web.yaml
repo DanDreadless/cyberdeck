@@ -1,0 +1,194 @@
+# Built-in methodology checklist: general recon and websites (docs/LEARNING-PLAN.md W4).
+# Format: src/cyberdeck/core/methodology.py. Items are things to check, not things Cyberdeck
+# runs: `tool:` only offers a tool Cyberdeck already has, through the Run dialog.
+# Turn the built-in checklists off in Settings; yours in ~/.config/cyberdeck/checklists/ load anyway.
+
+- id: general.all-ports
+  section: general
+  phase: recon
+  title: "Scan every TCP port, not just the top 1000"
+  why: >
+    Custom apps on easy boxes often sit on odd [[port|ports]] (5000, 8080, 9091...). A quick
+    full sweep makes sure you aren't working with half the picture.
+  how: "c > Stage 1 (nmap -p- --min-rate 5000)"
+  done_when: { has_services: true }  # also counts scans you imported
+  tool: nmap-allports
+  priority: 100
+
+- id: general.versions
+  section: general
+  phase: recon
+  title: "Get versions and default script output for every open port"
+  why: >
+    Product names and versions ([[version-detection]]) decide everything else: which exploits
+    apply, which default passwords to try, which hostname the site wants.
+  how: "c > Stage 2 (nmap -sC -sV on the open ports)"
+  applies: { has_services: true }
+  done_when: { has_versions: true }
+  tool: nmap-services
+  priority: 95
+
+- id: general.udp
+  section: general
+  phase: recon
+  title: "Check the top UDP ports once"
+  why: >
+    SNMP, TFTP and DNS only show up on [[tcp-udp|UDP]]. It's slow and needs root, so do it
+    while you work on something else.
+  how: "c > UDP top ports (sudo)"
+  applies: { has_services: true }
+  done_when: { tools_done: [nmap-udp] }
+  tool: nmap-udp
+  priority: 40
+
+- id: general.hosts
+  section: general
+  phase: recon
+  title: "Add the box's hostname to /etc/hosts"
+  why: >
+    HTB sites usually only answer on their name ([[hostname]]); by IP you get a [[redirect]]
+    or the wrong site.
+  how: "h on the dashboard (shows the change first)"
+  applies: { has_hostname: true }
+  done_when: { hostname_in_hosts: true }
+  priority: 98
+
+- id: general.versions-searched
+  section: general
+  phase: enumeration
+  title: "Look up every exact version you found"
+  why: >
+    An old version with a public [[cve|exploit]] is the most common way in on easy boxes.
+    Search Exploit-DB offline, then the web ("<product> <version> exploit", "<product> CVE").
+  how: "searchsploit <product> <version>; read the matching entries before using any"
+  applies: { has_versions: true }
+  done_when: { tools_done: [searchsploit] }
+  tool: searchsploit
+  priority: 80
+
+- id: general.notes
+  section: general
+  phase: enumeration
+  title: "Write down what you've tried and what you're guessing"
+  why: >
+    Two lines of notes per idea stop you going round in circles and make a [[rabbit-hole]]
+    easy to spot. They also become your write-up.
+  how: "n on the dashboard"
+  priority: 30
+
+- id: web.browse
+  section: web
+  phase: enumeration
+  title: "Open the site in a browser and click everything"
+  why: >
+    Tools miss what a person sees in a minute: a login page, a product name in the footer, a
+    contact form, a "dev" link, a page that takes a file or a URL.
+  how: "Firefox on Kali; use the hostname once it's in /etc/hosts"
+  applies: { has_web: true }
+  priority: 99
+
+- id: web.fingerprint
+  section: web
+  phase: enumeration
+  title: "Fingerprint the web stack"
+  why: >
+    Knowing the server, language and [[cms|CMS]] (with versions) tells you which paths,
+    exploits and default logins matter ([[fingerprint]]).
+  how: "whatweb http://<host>/ (or the Wappalyzer browser add-on)"
+  applies: { has_web: true }
+  done_when: { tools_done: [web-fingerprint] }
+  tool: web-fingerprint
+  priority: 90
+
+- id: web.source
+  section: web
+  phase: enumeration
+  title: "Read the page source of the pages you find"
+  why: >
+    Comments, hidden form fields, JavaScript files, API endpoints and version strings live in
+    the source ([[source-code-review|reading source]]), not on screen.
+  how: "Ctrl+U in the browser; also open each linked .js file"
+  applies: { has_web: true }
+  done_when: { tools_done: [page-inspect] }
+  tool: page-inspect
+  priority: 85
+
+- id: web.robots
+  section: web
+  phase: enumeration
+  title: "Check robots.txt and sitemap.xml"
+  why: >
+    They list paths the owner didn't want indexed: admin areas, backups, old versions.
+  how: "http://<host>/robots.txt and /sitemap.xml"
+  applies: { has_web: true }
+  priority: 75
+
+- id: web.dirs
+  section: web
+  phase: enumeration
+  title: "Look for hidden directories and files"
+  why: >
+    Admin panels, backups and dev files are often unlinked but reachable
+    ([[directory-bruteforce]]). Run it inside interesting folders again.
+  how: "r > dir-bruteforce (feroxbuster / gobuster / ffuf) with a medium wordlist"
+  applies: { has_web: true }
+  done_when: { tools_done: [dir-bruteforce] }
+  tool: dir-bruteforce
+  priority: 80
+
+- id: web.vhosts
+  section: web
+  phase: enumeration
+  title: "Fuzz for virtual hosts under the domain"
+  why: >
+    dev., admin. or staging. sites on the same IP are invisible until you ask for them by name
+    ([[vhost]]). A separate site is often less protected.
+  how: "r > vhost-fuzz (ffuf with the Host header); add every hit to /etc/hosts"
+  applies: { has_web: true, has_domain: true }
+  done_when: { tools_done: [vhost-fuzz] }
+  tool: vhost-fuzz
+  priority: 78
+
+- id: web.git
+  section: web
+  phase: enumeration
+  title: "Check for an exposed .git folder and backup files"
+  why: >
+    A readable /.git/ gives you the source code and its history, which often holds passwords
+    ([[git-exposure]]). Backup files (.bak, .old, .zip, ~) do the same.
+  how: "Open http://<host>/.git/HEAD: if it shows 'ref: refs/heads/...', the folder is exposed"
+  applies: { has_web: true }
+  priority: 70
+
+- id: web.default-creds
+  section: web
+  phase: foothold
+  title: "Try the default login on every login page"
+  why: >
+    Products ship with known logins ([[default-credentials]]): admin/admin, the vendor's manual
+    value, or something printed on the device. It works on easy boxes more than you'd think.
+  how: "Search '<product> default password'; also try admin:admin and admin:password"
+  applies: { has_web: true }
+  priority: 72
+
+- id: web.headers
+  section: web
+  phase: enumeration
+  title: "Look at response headers and cookies"
+  why: >
+    X-Powered-By, Server and cookie names (PHPSESSID, laravel_session, JSESSIONID) reveal the
+    framework and sometimes its version.
+  how: "curl -I http://<host>/ or the browser's Network tab"
+  applies: { has_web: true }
+  priority: 55
+
+- id: web.inputs
+  section: web
+  phase: enumeration
+  title: "Make a list of every place the site takes your input"
+  why: >
+    Logins, search boxes, file uploads, URL parameters (?page=, ?file=, ?url=) and APIs are
+    where bugs live. Knowing them all is the [[enumeration]] that leads to a foothold.
+  how: "Note each one in notes (n): the URL, the parameter, what it seems to do"
+  applies: { has_web: true }
+  priority: 60

@@ -1,0 +1,70 @@
+id: http-probe
+name: HTTP probe
+description: Send one request (POST, PUT...) to an endpoint and show the full response
+category: web
+safety: intrusive
+detect:
+  binary: curl
+  apt: curl
+  version_cmd: ["curl", "--version"]
+  version_regex: 'curl (\S+)'
+  help_cmd: ["curl", "--help"]
+inputs:
+  url:
+    label: URL
+    help: "Endpoint to call, e.g. one page-inspect found in a form or in JavaScript."
+options:
+  - id: method
+    flag: -X
+    type: choice
+    choices: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
+    default: POST
+    label: Method (-X)
+    help: "HTTP method. The endpoint's own method is filled in when the suggestion knows it."
+  - id: data
+    flag: --data
+    type: string
+    label: Body (--data)
+    help: "Request body, e.g. password=test or {\"id\":1} (set the JSON content type below)."
+  - id: content_type
+    flag: -H
+    type: choice
+    choices: ["Content-Type: application/json", "Content-Type: application/x-www-form-urlencoded"]
+    label: Content type
+    help: "Leave empty for curl's default."
+  - id: header
+    flag: -H
+    type: string
+    label: Extra header (-H)
+    help: "e.g. Cookie: session=..., or X-Forwarded-For: 127.0.0.1"
+  - id: insecure
+    flag: -k
+    type: bool
+    default: true
+    label: Ignore TLS errors (-k)
+    help: "Box certificates are self-signed."
+    advanced: true
+command:
+  - curl
+  - -s
+  - -i
+  - --max-time
+  - "20"
+  - "{opt.method}"
+  - "{opt.content_type}"
+  - "{opt.header}"
+  - "{opt.data}"
+  - "{opt.insecure}"
+  - "{extra}"
+  - "{url}"
+timeout: 60
+outputs: []
+parser: none
+notes: "One request, response (headers + body) on the job's output. Tagged intrusive because a POST/PUT can change state on the box."
+learn: https://book.hacktricks.xyz/network-services-pentesting/pentesting-web
+teach:
+  does: >
+    Sends one request to an endpoint and shows the whole answer, headers included.
+  look_for: >
+    Error messages that name missing fields, debug output, versions, and whether it asks for a
+    login at all ([[http-status|401/403]]).

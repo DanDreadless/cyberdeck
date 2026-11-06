@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<!-- Fictional box "nimbus" (HTTPS with several vhosts in the certificate, WordPress, OS detection). -->
+<nmaprun scanner="nmap" args="nmap -sC -sV -O -Pn --reason -p22,80,443 -oA nmap/nimbus 10.129.70.9" start="1793887200" startstr="Wed Nov  4 14:00:00 2026" version="7.95" xmloutputversion="1.05">
+<host starttime="1793887201" endtime="1793887240"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.129.70.9" addrtype="ipv4"/>
+<hostnames>
+</hostnames>
+<ports>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="ssh" product="OpenSSH" version="8.9p1 Ubuntu 3ubuntu0.6" extrainfo="Ubuntu Linux; protocol 2.0" ostype="Linux" method="probed" conf="10"><cpe>cpe:/a:openbsd:openssh:8.9p1</cpe></service></port>
+<port protocol="tcp" portid="80"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="http" product="Apache httpd" version="2.4.52" method="probed" conf="10"><cpe>cpe:/a:apache:http_server:2.4.52</cpe></service><script id="http-title" output="Did not follow redirect to https://nimbus.htb/"/><script id="http-server-header" output="Apache/2.4.52 (Ubuntu)"/></port>
+<port protocol="tcp" portid="443"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="http" product="Apache httpd" version="2.4.52" extrainfo="(Ubuntu)" tunnel="ssl" method="probed" conf="10"><cpe>cpe:/a:apache:http_server:2.4.52</cpe></service><script id="ssl-cert" output="Subject: commonName=portal.nimbus.htb/organizationName=Nimbus Ltd/countryName=GB&#xa;Subject Alternative Name: DNS:portal.nimbus.htb, DNS:dev.nimbus.htb, DNS:*.nimbus.htb&#xa;Issuer: commonName=portal.nimbus.htb/organizationName=Nimbus Ltd/countryName=GB&#xa;Public Key type: rsa"/><script id="http-generator" output="WordPress 6.4.2"/><script id="http-title" output="Nimbus &#x2013; Cloud Portal"/><script id="tls-alpn" output="&#xa;  http/1.1"/></port>
+</ports>
+<os><portused state="open" proto="tcp" portid="22"/>
+<osmatch name="Linux 5.0 - 5.14" accuracy="95" line="68000"><osclass type="general purpose" vendor="Linux" osfamily="Linux" osgen="5.X" accuracy="95"><cpe>cpe:/o:linux:linux_kernel:5</cpe></osclass></osmatch>
+<osmatch name="Linux 4.15 - 5.19" accuracy="91" line="65000"><osclass type="general purpose" vendor="Linux" osfamily="Linux" osgen="4.X" accuracy="91"/></osmatch>
+</os>
+</host>
+<runstats><finished time="1793887240" timestr="Wed Nov  4 14:00:40 2026" elapsed="40.00" exit="success"/><hosts up="1" down="0" total="1"/>
+</runstats>
+</nmaprun>

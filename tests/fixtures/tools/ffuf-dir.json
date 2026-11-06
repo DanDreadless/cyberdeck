@@ -1,0 +1,35 @@
+{
+ "commandline": "ffuf -u http://10.129.231.15/FUZZ -w words.txt -of json -o ffuf.json",
+ "time": "2026-11-04T14:30:00Z",
+ "results": [
+  {
+   "input": {
+    "FUZZ": "admin"
+   },
+   "position": 3,
+   "status": 301,
+   "length": 0,
+   "words": 1,
+   "lines": 1,
+   "content-type": "text/html",
+   "redirectlocation": "http://lantern.htb/admin/",
+   "url": "http://10.129.231.15/admin",
+   "host": "10.129.231.15"
+  },
+  {
+   "input": {
+    "FUZZ": "backup.zip"
+   },
+   "position": 7,
+   "status": 200,
+   "length": 204,
+   "words": 1,
+   "lines": 1,
+   "content-type": "application/zip",
+   "redirectlocation": "",
+   "url": "http://10.129.231.15/backup.zip",
+   "host": "10.129.231.15"
+  }
+ ],
+ "config": {}
+}

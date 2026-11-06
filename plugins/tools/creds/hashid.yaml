@@ -1,0 +1,28 @@
+id: hashid
+name: hashid
+description: Identify a hash's type, with the hashcat mode and John format
+category: creds
+safety: safe
+detect:
+  binary: hashid
+  apt: hashid
+  version_cmd: ["hashid", "--version"]
+  version_regex: 'v(\S+)'
+inputs:
+  hash:
+    label: Hash
+    help: "The hash to identify, pasted as is (it is passed as one argument)."
+command:
+  - hashid
+  - -m
+  - -j
+  - "{extra}"
+  - "{hash}"
+timeout: 60
+learn: https://www.kali.org/tools/hashid/
+teach:
+  does: >
+    Guesses what kind of password [[hash]] a string is from its length and format.
+  look_for: >
+    The hashcat mode and John format to crack it with ([[hash-cracking]]). Several guesses are
+    normal; try the most common first.

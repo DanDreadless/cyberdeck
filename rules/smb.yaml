@@ -1,0 +1,61 @@
+# SMB rules (kind: smb = 139/445). One suggestion per box: the `with:` values are the same for
+# both ports, so they dedupe. Format: docs/RULES.md.
+- id: smb.shares-anonymous
+  phase: enumeration
+  when:
+    finding: service
+    match: { kind: smb, state: open }
+  suggest:
+    tool: smbclient
+    with: { target: "{target.ip}" }
+  title: "List SMB shares on {target.ip} anonymously"
+  why: >
+    Many boxes leave a [[smb|share]] readable without a login (backups, dev, users). A share list
+    costs one request and tells you whether to go digging.
+  learn: https://book.hacktricks.xyz/network-services-pentesting/pentesting-smb
+  priority: 75
+
+- id: smb.access-null
+  phase: enumeration
+  when:
+    finding: service
+    match: { kind: smb, state: open }
+  suggest:
+    tool: netexec-smb
+    with: { target: "{target.ip}", auth: "null" }
+  title: "Check null-session SMB access and share permissions on {target.ip}"
+  why: >
+    NetExec shows the host name, domain, OS and SMB signing in one line, then which shares the
+    [[null-session|null session]] can READ or WRITE. A writable share can mean a file-drop attack or a web root.
+  learn: https://www.netexec.wiki/smb-protocol/enumeration
+  priority: 72
+
+- id: smb.access-guest
+  phase: enumeration
+  when:
+    finding: service
+    match: { kind: smb, state: open }
+  suggest:
+    tool: netexec-smb
+    with: { target: "{target.ip}", auth: guest }
+  title: "Check guest SMB access and share permissions on {target.ip}"
+  why: >
+    Some hosts refuse the [[null-session|null session]] but accept the guest account with an empty password,
+    which then reads shares and resolves users.
+  learn: https://www.netexec.wiki/smb-protocol/enumeration
+  priority: 68
+
+- id: smb.enum4linux
+  phase: enumeration
+  when:
+    finding: service
+    match: { kind: smb, state: open }
+  suggest:
+    tool: enum4linux-ng
+    with: { target: "{target.ip}" }
+  title: "Run enum4linux-ng against {target.ip} (users, groups, shares, policy)"
+  why: >
+    It tries every anonymous SMB/RPC/LDAP check in one go and summarises them: a good broad
+    sweep when the targeted checks above came back thin.
+  learn: https://book.hacktricks.xyz/network-services-pentesting/pentesting-smb
+  priority: 50

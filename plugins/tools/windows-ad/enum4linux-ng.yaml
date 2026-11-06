@@ -1,0 +1,56 @@
+id: enum4linux-ng
+name: enum4linux-ng
+description: SMB/RPC/LDAP enumeration of a Windows or Samba host (users, groups, shares, policy)
+category: windows-ad
+safety: intrusive
+ports: [445, 139, 389, 636]
+detect:
+  binary: enum4linux-ng
+  apt: enum4linux-ng
+  version_cmd: ["enum4linux-ng", "-h"]
+  version_regex: 'ENUM4LINUX - next generation \(v?(\S+?)\)'
+  help_cmd: ["enum4linux-ng", "-h"]
+inputs:
+  target:
+    from: target_ip
+    label: Target
+    help: "Windows or Samba host."
+options:
+  - id: user
+    flag: -u
+    type: string
+    label: Username (-u)
+    help: "Empty = null session (anonymous)."
+  - id: password
+    flag: -p
+    type: string
+    label: Password (-p)
+    help: "Password for the username."
+  - id: all
+    flag: -A
+    type: bool
+    default: true
+    label: All simple checks (-A)
+    help: "Users, groups, shares, password policy, printers, OS info."
+command:
+  - enum4linux-ng
+  - "{opt.all}"
+  - "{opt.user}"
+  - "{opt.password}"
+  - -oJ
+  - "{out}/enum4linux"
+  - "{extra}"
+  - "{target}"
+timeout: 1200
+outputs:
+  - path: "{out}/enum4linux.json"
+parser: none
+notes: "-oJ adds the .json extension itself. Output is also on the job's stdout."
+learn: https://book.hacktricks.xyz/network-services-pentesting/pentesting-smb
+teach:
+  does: >
+    Runs every anonymous SMB, RPC and LDAP check it knows in one go and summarises them
+    ([[null-session]], [[rpc]]).
+  look_for: >
+    Usernames, the domain name, shares you can read, and the password policy (lockout
+    threshold) before you ever guess a password.

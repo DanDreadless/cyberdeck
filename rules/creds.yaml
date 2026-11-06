@@ -1,0 +1,42 @@
+# Credential rules: every password found is tried where it is cheap to check. Format:
+# docs/RULES.md. Titles name the user only; the secret is in the suggestion's values.
+- id: creds.smb-reuse
+  phase: foothold
+  requires_state: { kinds: [smb] }
+  when:
+    finding: credential
+    match: { kind: password }
+  suggest:
+    tool: netexec-smb
+    with:
+      target: "{target.ip}"
+      auth: user
+      user: "{credential.user}"
+      password: "{credential.secret}"
+  title: "Try {credential.user}'s password on SMB ({target.ip}) and list shares"
+  why: >
+    [[password-reuse|Passwords get reused]]. One SMB login tells you whether the [[credential]] works on the domain,
+    which shares it can read, and (Pwn3d!) whether it is a local admin.
+  learn: https://www.netexec.wiki/smb-protocol/authentication
+  priority: 85
+
+# Password-shaped strings Cyberdeck spotted in saved tool output (core/credscan.py) arrive as
+# notes tagged possible-credential. The answer is user:password; the secret stays out of the
+# title (it's only in the pre-filled answer, which MCP clients don't see).
+- id: creds.possible-password
+  phase: foothold
+  when:
+    finding: note
+    match: { tags: possible-credential }
+  ask:
+    prompt: "{note.title}. Save it to Loot? Edit it as user:password (unknown user is fine)."
+    input: true
+    default: "{note.text}"
+    action: finding.add
+    finding: { type: credential, user: "{answer.user}", secret: "{answer.secret}" }
+  title: "Save a possible password to Loot ({note.title})"
+  why: >
+    Something in the output looks like a [[credential|password]], e.g. a database password in
+    a config file. Beginners often have the answer on screen without noticing. Once it's in
+    Loot, Cyberdeck suggests where to try it ([[password-reuse]]).
+  priority: 97

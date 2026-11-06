@@ -1,0 +1,431 @@
+# Built-in glossary (docs/LEARNING-PLAN.md W7). Rule `why:` text links a term as [[id]] or
+# [[id|words shown]]; the TUI underlines it and `g` shows the definition. Add or replace terms in
+# ~/.config/cyberdeck/glossary.yaml (same id replaces the built-in one). Turn the built-in list
+# off with `learning: {glossary: false}` in config.yaml or in Settings.
+#
+# Fields: id (lower case), term (shown name), aliases (other ways to write it), short (two
+# sentences, plain words), learn (one link), see (related ids).
+
+- id: port
+  term: Port
+  aliases: [ports, open port, open ports]
+  short: >
+    A numbered door on a machine that a program listens on (80 = website, 22 = SSH). Every open
+    port is a program you can talk to, so finding them is always the first step.
+  see: [nmap, service]
+
+- id: service
+  term: Service
+  aliases: [services]
+  short: >
+    The program answering on a port, such as a web server or an SSH server. Its name and version
+    tell you what to look at next and whether known bugs apply.
+  see: [port, version-detection]
+
+- id: nmap
+  term: nmap
+  short: >
+    The standard port scanner. Cyberdeck runs it in two stages: first every TCP port quickly,
+    then scripts and version detection on just the open ones.
+  learn: https://nmap.org/book/man.html
+  see: [port, version-detection]
+
+- id: version-detection
+  term: Version detection
+  aliases: [versions, version, nmap scripts]
+  short: >
+    nmap's -sV and -sC options ask each open port what it is and run safe default scripts.
+    A product name plus version is what you search for exploits and default passwords.
+  see: [nmap, cve]
+
+- id: tcp-udp
+  term: TCP and UDP
+  aliases: [udp, tcp]
+  short: >
+    The two main ways programs talk over a network. Most HTB services use TCP; a few important
+    ones (SNMP, DNS, TFTP) use UDP, which is slower to scan and needs root.
+  see: [port, snmp]
+
+- id: vpn
+  term: HTB VPN
+  aliases: [tunnel, tun0, openvpn]
+  short: >
+    HTB machines are only reachable through their VPN. You download a .ovpn file from the HTB
+    site, start it with openvpn, and a tun0 interface appears with your lab IP.
+  see: [lhost]
+
+- id: lhost
+  term: LHOST
+  aliases: [lport, your ip, attacker ip]
+  short: >
+    Your own IP on the HTB VPN (the tun0 address). Reverse shells and file downloads from the
+    target connect back to it; LPORT is the port you listen on.
+  see: [vpn, reverse-shell]
+
+- id: hostname
+  term: Hostname
+  aliases: [hostnames, domain name, box.htb]
+  short: >
+    A name like soccer.htb. Many HTB websites only work when you visit them by name, which your
+    machine can only look up once the name is in /etc/hosts.
+  see: [etc-hosts, vhost]
+
+- id: etc-hosts
+  term: /etc/hosts
+  aliases: [hosts file, /etc/hosts, hosts]
+  short: >
+    A local file that maps names to IPs before any DNS lookup. Adding "10.129.x.x soccer.htb"
+    there is how you make HTB hostnames resolve; it needs sudo to edit.
+  see: [hostname, vhost]
+
+- id: redirect
+  term: Redirect
+  aliases: [redirects, 301, 302]
+  short: >
+    A web server telling your browser to go somewhere else. On HTB, visiting the IP usually
+    redirects to http://<box>.htb/, which is how you learn the hostname.
+  see: [hostname, http-status]
+
+- id: vhost
+  term: Virtual host
+  aliases: [vhosts, virtual host, virtual hosts, subdomain, subdomains]
+  short: >
+    One web server can host several sites on the same IP and pick one by the name you asked for
+    (the Host header). Hidden ones like dev. or admin. are found by fuzzing that header.
+  learn: https://book.hacktricks.xyz/pentesting-web/domain-subdomain-takeover#virtual-hosts
+  see: [host-header, fuzzing]
+
+- id: host-header
+  term: Host header
+  aliases: [host headers]
+  short: >
+    The part of a web request that says which site you want. Changing it lets you reach virtual
+    hosts that nothing links to.
+  see: [vhost]
+
+- id: http-status
+  term: HTTP status code
+  aliases: [status code, 200, 403, 404, 401]
+  short: >
+    The number a web server answers with: 200 OK, 301/302 redirect, 401 needs login,
+    403 forbidden (it exists but you can't see it), 404 not found, 500 server error.
+  see: [redirect]
+
+- id: fingerprint
+  term: Fingerprinting
+  aliases: [fingerprint, fingerprinting, web stack, tech stack]
+  short: >
+    Working out what software a target runs (web server, framework, CMS, versions) from its
+    answers. The result tells you which bugs and default passwords could apply.
+  see: [cms, version-detection]
+
+- id: cms
+  term: CMS
+  aliases: [content management system, wordpress, joomla]
+  short: >
+    A ready-made website system such as WordPress or Joomla. Each has well-known admin paths,
+    version files and public exploits, so identifying it saves a lot of guessing.
+  see: [fingerprint, cve]
+
+- id: directory-bruteforce
+  term: Directory brute-forcing
+  aliases: [dir brute-force, dir-bruteforce, content discovery, hidden directories, hidden paths]
+  short: >
+    Asking a website for thousands of likely paths from a wordlist (/admin, /backup, /.git) to
+    find pages nothing links to. feroxbuster, gobuster and ffuf do this.
+  see: [wordlist, http-status]
+
+- id: fuzzing
+  term: Fuzzing
+  aliases: [fuzz, fuzzer, ffuf]
+  short: >
+    Sending many variations of one input (a path, a header, a parameter) and watching for
+    answers that differ. Most of the time you filter out the "normal" answer size.
+  see: [wordlist, vhost]
+
+- id: wordlist
+  term: Wordlist
+  aliases: [wordlists, seclists]
+  short: >
+    A text file of guesses, one per line: paths, subdomains, usernames or passwords. SecLists
+    (sudo apt install seclists) is the standard collection on Kali.
+  see: [rockyou, directory-bruteforce]
+
+- id: rockyou
+  term: rockyou.txt
+  aliases: [rockyou]
+  short: >
+    A list of 14 million real leaked passwords, the default for cracking on HTB. Kali ships it
+    zipped: sudo gunzip /usr/share/wordlists/rockyou.txt.gz before first use.
+  see: [hash-cracking, wordlist]
+
+- id: git-exposure
+  term: Exposed .git folder
+  aliases: [.git, git folder, exposed git]
+  short: >
+    A website accidentally serving its /.git/ folder lets you download the source code and its
+    history, which often contains passwords or secret keys.
+  see: [source-code-review, credential]
+
+- id: source-code-review
+  term: Reading source code
+  aliases: [source code, page source, view source]
+  short: >
+    Reading the HTML, JavaScript or app code you can get to. Comments, hidden form fields, API
+    endpoints and config values are common clues on easy boxes.
+  see: [git-exposure]
+
+- id: default-credentials
+  term: Default credentials
+  aliases: [default password, default passwords, default creds, default login]
+  short: >
+    The username and password a product ships with (admin/admin...). Search "<product> default
+    password" for any login page you find; on easy boxes it works surprisingly often.
+  see: [credential, fingerprint]
+
+- id: credential
+  term: Credential
+  aliases: [credentials, creds, password, passwords, username and password]
+  short: >
+    A username plus a secret (password, key, token). Every one you find is gold: save it and try
+    it on every login you know about.
+  see: [password-reuse, hash]
+
+- id: password-reuse
+  term: Password reuse
+  aliases: [reused, reuse, credential reuse]
+  short: >
+    People and admins use the same password in several places. A database password from a
+    config file is often also a user's SSH or admin password; it's the most common user step on
+    easy boxes.
+  see: [credential]
+
+- id: hash
+  term: Password hash
+  aliases: [hashes, hashed]
+  short: >
+    A one-way scrambled form of a password, stored so the real one isn't kept. You can't
+    decrypt it, but you can guess passwords, hash them the same way and compare (cracking).
+  see: [hash-cracking]
+
+- id: hash-cracking
+  term: Hash cracking
+  aliases: [crack, cracking, hashcat, john]
+  short: >
+    Hashing every word in a wordlist the same way as the target hash until one matches.
+    hashcat and john do it; you first need to know the hash type (its "mode").
+  see: [hash, rockyou]
+
+- id: cve
+  term: CVE
+  aliases: [cves, vulnerability, public exploit, exploit]
+  short: >
+    A public ID for a known security bug (CVE-2023-23752). If a service's exact version has a
+    CVE, there may be a public exploit for it; searchsploit searches Exploit-DB offline.
+  learn: https://www.exploit-db.com/
+  see: [searchsploit, version-detection]
+
+- id: searchsploit
+  term: searchsploit
+  aliases: [exploit-db, exploitdb]
+  short: >
+    Kali's offline copy of Exploit-DB. Searching a product and version lists known exploits; read
+    them before running anything, many are for other versions or need tweaks.
+  see: [cve]
+
+- id: rce
+  term: Remote code execution
+  aliases: [rce, code execution, command execution]
+  short: >
+    A bug that lets you run your own commands on the target. On HTB it is usually how you go
+    from a web app to a shell (the foothold).
+  see: [foothold, reverse-shell]
+
+- id: foothold
+  term: Foothold
+  aliases: [initial access, shell]
+  short: >
+    Your first way of running commands on the box, usually as a low-privileged service user like
+    www-data. From there you look for a way to a real user, then root.
+  see: [reverse-shell, privilege-escalation]
+
+- id: reverse-shell
+  term: Reverse shell
+  aliases: [reverse shells, revshell, bind shell]
+  short: >
+    The target connects back to a listener on your machine (nc -lvnp 4444) and gives you a
+    command line. A bind shell is the other way round: the target listens, you connect.
+  learn: https://book.hacktricks.xyz/generic-methodologies-and-resources/reverse-shells
+  see: [lhost, foothold]
+
+- id: privilege-escalation
+  term: Privilege escalation
+  aliases: [privesc, priv esc, escalate]
+  short: >
+    Going from a low-privileged user to a more powerful one, finally root or Administrator.
+    Classic first checks on Linux: sudo -l, SUID files, cron jobs, config files with passwords.
+  learn: https://book.hacktricks.xyz/linux-hardening/privilege-escalation
+  see: [sudo, suid, gtfobins]
+
+- id: sudo
+  term: sudo
+  aliases: [sudo -l, sudoers]
+  short: >
+    Runs a command as another user (usually root). "sudo -l" lists what your user may run that
+    way; anything listed there is the first place to look for root.
+  see: [privilege-escalation, gtfobins]
+
+- id: suid
+  term: SUID
+  aliases: [setuid, suid binary, suid binaries]
+  short: >
+    A file permission that makes a program run as its owner (often root) whoever starts it. An
+    unusual SUID program can be a way to root; check it on GTFOBins.
+  see: [gtfobins, privilege-escalation]
+
+- id: gtfobins
+  term: GTFOBins
+  aliases: [lolbas]
+  short: >
+    A list of normal Linux programs and how each can be abused when run with sudo or SUID
+    (LOLBAS is the Windows equivalent).
+  learn: https://gtfobins.github.io/
+  see: [sudo, suid]
+
+- id: flag
+  term: Flag
+  aliases: [flags, user.txt, root.txt, user flag, root flag]
+  short: >
+    The proof you reached a level: user.txt in a user's home, root.txt in /root (Administrator's
+    Desktop on Windows). Each is 32 hex characters you paste into the HTB site.
+  see: [foothold, privilege-escalation]
+
+- id: ssh
+  term: SSH
+  aliases: [openssh]
+  short: >
+    The standard remote login for Linux (port 22). Rarely the way in by itself; it's where found
+    passwords and keys get tried once you have them.
+  see: [credential, password-reuse]
+
+- id: ftp
+  term: FTP
+  aliases: [anonymous ftp, anonymous login]
+  short: >
+    An old file transfer service (port 21). Always try logging in as "anonymous" with any
+    password; open FTP servers often hold backups or notes.
+  see: [credential]
+
+- id: smb
+  term: SMB
+  aliases: [smb share, smb shares, samba, share, shares]
+  short: >
+    Windows file sharing (ports 139/445), also run on Linux as Samba. Shares readable without a
+    password (null or guest session) often leak files, users and passwords.
+  learn: https://book.hacktricks.xyz/network-services-pentesting/pentesting-smb
+  see: [null-session]
+
+- id: null-session
+  term: Null / guest session
+  aliases: [null session, guest session, anonymous session, anonymous]
+  short: >
+    Logging in to SMB or RPC with an empty username and password (null) or as "guest". Old or
+    misconfigured servers allow it and hand out lists of users and shares.
+  see: [smb, rpc]
+
+- id: rpc
+  term: RPC
+  aliases: [msrpc, rpcbind]
+  short: >
+    Remote procedure calls: services that let other machines run functions. On Windows (port
+    135) they can list users and the domain; rpcbind (111) on Linux points to NFS.
+  see: [null-session, nfs]
+
+- id: nfs
+  term: NFS
+  aliases: [nfs share, exports]
+  short: >
+    Linux network file sharing (port 2049). Exported folders can sometimes be mounted by anyone,
+    which can leak files or let you plant ones the box will trust.
+  see: [rpc]
+
+- id: snmp
+  term: SNMP
+  aliases: [community string, public community]
+  short: >
+    A UDP network-management service (port 161). With the default "public" community string it
+    can leak running processes, users and command lines, sometimes with passwords.
+  see: [tcp-udp]
+
+- id: dns
+  term: DNS
+  aliases: [zone transfer, axfr]
+  short: >
+    Turns names into IPs (port 53). A misconfigured server may allow a zone transfer that lists
+    every name in the domain, often revealing hidden vhosts.
+  see: [vhost, hostname]
+
+- id: active-directory
+  term: Active Directory
+  aliases: [ad, domain controller, dc, windows domain]
+  short: >
+    Microsoft's system for managing users and computers in a Windows network. A box with
+    Kerberos (88) and LDAP (389) is usually a domain controller.
+  see: [kerberos, ldap]
+
+- id: kerberos
+  term: Kerberos
+  aliases: [as-rep roasting, kerberoasting, kerberoast, as-rep roast]
+  short: >
+    The ticket-based login system of Active Directory. AS-REP roasting and Kerberoasting ask it
+    for tickets that contain crackable password hashes.
+  see: [active-directory, hash-cracking]
+
+- id: ldap
+  term: LDAP
+  aliases: [ldap query]
+  short: >
+    The directory service behind Active Directory (port 389). It holds users, groups and
+    computers; sometimes it can be queried without logging in.
+  see: [active-directory]
+
+- id: winrm
+  term: WinRM
+  aliases: [evil-winrm]
+  short: >
+    Windows remote management (ports 5985/5986). With a valid user's password it gives you a
+    PowerShell prompt, much like SSH on Linux.
+  see: [credential]
+
+- id: sqli
+  term: SQL injection
+  aliases: [sql injection, sqlmap]
+  short: >
+    A web bug where your input ends up inside a database query. It can bypass logins or dump the
+    database, including password hashes.
+  learn: https://portswigger.net/web-security/sql-injection
+  see: [hash]
+
+- id: safety-tags
+  term: Safety tags
+  aliases: [safety, safe, intrusive, bruteforce]
+  short: >
+    Cyberdeck labels every tool: safe (read-only), intrusive (noisy or changes things),
+    bruteforce (many login attempts), exploit. Only safe ones can run in auto mode.
+  see: []
+
+- id: enumeration
+  term: Enumeration
+  aliases: [enumerate, enum]
+  short: >
+    Methodically listing everything a service will tell you: pages, users, shares, versions.
+    Most of the time on a box is spent here; the way in is usually something you listed.
+  see: [fingerprint, directory-bruteforce]
+
+- id: rabbit-hole
+  term: Rabbit hole
+  aliases: [rabbit holes, dead end]
+  short: >
+    A tempting lead that goes nowhere. If a lead hasn't given you anything new for half an hour,
+    park it and look at what you haven't tried yet.
+  see: [enumeration]

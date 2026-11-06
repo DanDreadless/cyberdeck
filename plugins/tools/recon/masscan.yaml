@@ -1,0 +1,60 @@
+id: masscan
+name: masscan
+description: Very fast TCP port sweep of the box (finds open ports; nmap then fingerprints them)
+category: recon
+safety: intrusive
+requires_root: true
+detect:
+  binary: masscan
+  apt: masscan
+  version_cmd: ["masscan", "--version"]
+  version_regex: 'Masscan version (\S+)'
+  help_cmd: ["masscan", "--help"]
+inputs:
+  target:
+    from: target_ip
+    label: Target IP
+    help: "masscan takes IP addresses only, not hostnames."
+options:
+  - id: ports
+    flag: -p
+    type: string
+    default: "1-65535"
+    label: Ports (-p)
+    help: "TCP ports, e.g. 1-65535 or 22,80,443. U:161 adds a UDP port."
+  - id: rate
+    flag: --rate
+    type: int
+    default: 1000
+    label: Packets per second (--rate)
+    help: "Higher is faster but drops ports over the VPN; 1000 is safe on HTB."
+  - id: interface
+    flag: -e
+    type: string
+    default: tun0
+    label: Interface (-e)
+    help: "The VPN interface."
+    advanced: true
+presets:
+  top-ports: { ports: "1-1024" }
+command:
+  - masscan
+  - "{target}"
+  - "{opt.ports}"
+  - "{opt.rate}"
+  - "{opt.interface}"
+  - -oL
+  - "{out}/masscan.txt"
+  - "{extra}"
+timeout: 1800
+outputs:
+  - path: "{out}/masscan.txt"
+parser: lines_regex
+parser_config:
+  patterns:
+    # -oL lines: open tcp 22 10.10.11.5 1730000000
+    - regex: '^open (?P<proto>tcp|udp) (?P<port>\d+) '
+      type: service
+      confidence: 0.9
+notes: "Needs root (turn on sudo). It only finds open ports: run nmap's service scan on them afterwards."
+learn: https://github.com/robertdavidgraham/masscan

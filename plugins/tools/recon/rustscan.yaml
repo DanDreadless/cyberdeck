@@ -1,0 +1,67 @@
+id: rustscan
+name: RustScan
+description: Fast port sweep that hands the open ports to nmap for a service scan
+category: recon
+safety: intrusive
+detect:
+  binary: rustscan
+  apt: rustscan
+  version_cmd: ["rustscan", "--version"]
+  version_regex: 'rustscan (\S+)'
+  help_cmd: ["rustscan", "--help"]
+inputs:
+  target:
+    from: host
+    label: Target
+    help: "Host to scan."
+options:
+  - id: range
+    flag: -r
+    type: string
+    label: Port range (-r)
+    help: "Range to sweep, e.g. 1-10000. Empty = all ports. Don't set it together with Ports."
+  - id: ports
+    flag: -p
+    type: string
+    label: Ports (-p)
+    help: "Comma-separated list instead of a range, e.g. 22,80,443."
+  - id: batch
+    flag: -b
+    type: int
+    default: 1000
+    label: Batch size (-b)
+    help: "Ports tried at once. Lower it if ports are missed over the VPN."
+  - id: timeout
+    flag: -t
+    type: int
+    default: 1500
+    label: Timeout ms (-t)
+    help: "How long to wait for each port."
+    advanced: true
+command:
+  - rustscan
+  - --no-banner
+  - -a
+  - "{target}"
+  - "{opt.range}"
+  - "{opt.ports}"
+  - "{opt.batch}"
+  - "{opt.timeout}"
+  - "{extra}"
+  - --
+  - -sC
+  - -sV
+  - -oN
+  - "{out}/rustscan-nmap.txt"
+timeout: 1800
+outputs:
+  - path: "{out}/rustscan-nmap.txt"
+parser: lines_regex
+parser_config:
+  patterns:
+    # nmap normal output: 22/tcp open  ssh     OpenSSH 8.9p1 Ubuntu
+    - regex: '^(?P<port>\d+)/(?P<proto>tcp|udp)\s+open\s+(?P<name>\S+)'
+      type: service
+      confidence: 0.8
+notes: "Extra args go to rustscan; everything after -- is passed to nmap. Cyberdeck's own nmap scan already covers this: use RustScan when you want a quick second look."
+learn: https://github.com/RustScan/RustScan

@@ -1,0 +1,3 @@
+[
+{"target":"http://lantern.htb/","http_status":200,"request_config":{"headers":{"User-Agent":"WhatWeb/0.6.4"}},"plugins":{"Country":{"string":["RESERVED"],"module":["ZZ"]},"HTML5":{},"HTTPServer":{"os":["Ubuntu Linux"],"string":["nginx/1.18.0 (Ubuntu)"]},"IP":{"string":["10.129.231.15"]},"JQuery":{"version":["3.6.0"]},"MetaGenerator":{"string":["WordPress 6.4.2"]},"nginx":{"version":["1.18.0"]},"PHP":{"version":["8.1.2"]},"Script":{},"Title":{"string":["Lantern - Home"]},"WordPress":{"version":["6.4.2"]},"X-Powered-By":{"string":["PHP/8.1.2"]}}}
+]

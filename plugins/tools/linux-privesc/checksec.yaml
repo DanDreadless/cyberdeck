@@ -1,0 +1,21 @@
+id: checksec
+name: checksec
+description: Show a binary's protections (NX, PIE, RELRO, canary)
+category: linux-privesc
+safety: safe
+detect:
+  binary: checksec
+  apt: checksec
+  version_cmd: ["checksec", "--version"]
+  version_regex: 'checksec v?(\S+)'
+inputs:
+  file:
+    type: path
+    label: Binary
+    help: "Path to the file, relative to the box folder (e.g. loot/image.jpg) or absolute."
+command:
+  - checksec
+  - "--file={file}"
+  - "{extra}"
+timeout: 60
+learn: https://www.kali.org/tools/checksec/

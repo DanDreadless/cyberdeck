@@ -1,0 +1,31 @@
+# Hostname rules: get the box's names into /etc/hosts. Format: docs/RULES.md.
+- id: hosts.add
+  phase: recon
+  when:
+    finding: hostname
+    match: { in_hosts_file: false }
+  ask:
+    prompt: "Add {hostname.fqdn} ({target.ip}) to /etc/hosts?"
+    action: hosts.add
+    args: { names: "{hostname.fqdn}" }
+  why: >
+    HTB boxes use name-based [[vhost|virtual hosts]]: the web server picks the site by the [[host-header|Host header]], so
+    by IP you often get a [[redirect]] or a blank page. Cyberdeck shows the exact change first and
+    tags its lines so 'cyberdeck hosts remove' can take them out later.
+  learn: https://book.hacktricks.xyz/pentesting-web/domain-subdomain-takeover#virtual-hosts
+  priority: 100
+
+- id: hosts.guess
+  phase: recon
+  requires_state: { has_web: true, has_hostname: false }
+  ask:
+    prompt: "No hostname is known yet. Which name does the site use? (HTB boxes are usually <box>.htb)"
+    input: true
+    default: "{target.slug}.htb"
+    action: finding.add
+    finding: { type: hostname, fqdn: "{answer}", ip: "{target.ip}", origins: [answer] }
+  title: "Tell Cyberdeck the box's hostname"
+  why: >
+    [[fingerprint|Fingerprinting]] usually reveals the name from a redirect. If it didn't, the HTB convention
+    is <box>.htb; with a name, Cyberdeck can add it to [[etc-hosts|/etc/hosts]] and fuzz for [[vhost|vhosts]] under it.
+  priority: 70

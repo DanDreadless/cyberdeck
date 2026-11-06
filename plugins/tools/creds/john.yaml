@@ -1,0 +1,64 @@
+id: john
+name: John the Ripper
+description: Crack password hashes offline with a wordlist
+category: creds
+safety: bruteforce
+detect:
+  binary: john
+  apt: john
+  version_cmd: ["john"]
+  version_regex: 'John the Ripper (\S+)'
+  help_cmd: ["john"]
+inputs:
+  hashes:
+    type: path
+    label: Hash file
+    help: "File with the hashes, relative to the box folder (e.g. loot/hashes.txt). user:hash lines and *2john output both work."
+options:
+  - id: wordlist
+    flag: "--wordlist="
+    joined: true
+    type: wordlist
+    default: "{wordlists.passwords}"
+    label: Wordlist
+    help: "Candidate passwords (rockyou by default)."
+  - id: format
+    flag: "--format="
+    joined: true
+    type: string
+    label: Hash format (--format)
+    help: "e.g. raw-md5, nt, sha512crypt, bcrypt, krb5tgs, krb5asrep. Empty = let john detect it."
+  - id: rules
+    flag: "--rules="
+    joined: true
+    type: string
+    label: Rules (--rules)
+    help: "Word-mangling rules, e.g. best64 or jumbo. Empty = words as they are."
+presets:
+  best64: { rules: best64 }
+command:
+  - john
+  - "{opt.wordlist}"
+  - "{opt.format}"
+  - "{opt.rules}"
+  - "--pot={out}/john.pot"
+  - "{extra}"
+  - "{hashes}"
+timeout: 7200
+outputs:
+  - path: "{out}/john.pot"
+parser: lines_regex
+parser_config:
+  patterns:
+    # pot lines are hash:plain; the password is after the last colon. Raw MD5 and NT hashes are
+    # stored as $dynamic_0$<hex> and $NT$<hex>: strip that so they match the hash as found.
+    - regex: '^\$(?:dynamic_0|NT)\$(?P<value>[0-9a-fA-F]{32}):(?P<cracked>.*)$'
+      type: hash
+      tags: [cracked]
+      confidence: 1.0
+    - regex: '^(?!\$(?:dynamic_0|NT)\$)(?P<value>.+):(?P<cracked>[^:]*)$'
+      type: hash
+      tags: [cracked]
+      confidence: 1.0
+notes: "Uses its own pot file per run (raw/john-*/john.pot), so hashes already in ~/.john/john.pot are cracked again. Convert files first with the *2john tools (zip2john, ssh2john...)."
+learn: https://www.openwall.com/john/doc/EXAMPLES.shtml

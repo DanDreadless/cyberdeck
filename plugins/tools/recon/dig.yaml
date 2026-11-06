@@ -1,0 +1,36 @@
+id: dig
+name: dig
+description: Ask the box's own DNS server about its domain (records, other hostnames)
+category: recon
+safety: safe
+detect:
+  binary: dig
+  apt: dnsutils
+  version_cmd: ["dig", "-v"]
+  version_regex: 'DiG (\S+)'
+inputs:
+  server:
+    from: target_ip
+    label: DNS server
+    help: "Usually the box itself when it runs DNS (port 53)."
+  name:
+    from: domain
+    label: Name
+    help: "Domain or hostname to look up, e.g. box.htb."
+options:
+  - id: record
+    type: choice
+    choices: [ANY, A, AAAA, MX, NS, TXT, SOA, CNAME, SRV, PTR]
+    default: ANY
+    label: Record type
+    help: "Which records to ask for. TXT and SRV often reveal extra names on AD boxes."
+command:
+  - dig
+  - "@{server}"
+  - "{name}"
+  - "{opt.record}"
+  - +noall
+  - +answer
+  - "{extra}"
+timeout: 60
+learn: https://www.kali.org/tools/bind9/

@@ -1,0 +1,43 @@
+id: smbclient
+name: smbclient (list shares)
+description: List a host's SMB shares anonymously
+category: windows-ad
+safety: intrusive
+ports: [445, 139]
+detect:
+  binary: smbclient
+  apt: smbclient
+  version_cmd: ["smbclient", "--version"]
+  version_regex: 'Version (\S+)'
+  help_cmd: ["smbclient", "--help"]
+inputs:
+  target:
+    from: target_ip
+    label: Target
+    help: "SMB host."
+command:
+  - smbclient
+  - -N
+  - -g
+  - -L
+  - "//{target}/"
+  - "{extra}"
+timeout: 120
+outputs: []
+parser: lines_regex
+parser_config:
+  patterns:
+    # -g (grepable) lines: Disk|backups|Backup share
+    - regex: '^Disk\|(?P<name>[^|]+)\|'
+      type: share
+      set: { host: "{target}", anonymous: "true" }
+      confidence: 0.9
+notes: "Anonymous only (-N). To browse a share, run it yourself: smbclient //<ip>/<share> -N (it is interactive). With a login, use NetExec (SMB) or smbmap."
+learn: https://book.hacktricks.xyz/network-services-pentesting/pentesting-smb
+teach:
+  does: >
+    Lists the Windows file [[smb|shares]] the host offers without logging in
+    ([[null-session]]).
+  look_for: >
+    Shares beyond the defaults (ADMIN$, C$, IPC$): names like backup, dev, users or software
+    are where files with passwords hide.

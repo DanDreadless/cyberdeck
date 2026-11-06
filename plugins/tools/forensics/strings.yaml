@@ -1,0 +1,30 @@
+id: strings
+name: strings
+description: Printable strings in a file (passwords, URLs, flags in binaries)
+category: forensics
+safety: safe
+detect:
+  binary: strings
+  apt: binutils
+  version_cmd: ["strings", "--version"]
+  version_regex: '(\d+\.\d+(?:\.\d+)?)'
+inputs:
+  file:
+    type: path
+    label: File
+    help: "Path to the file, relative to the box folder (e.g. loot/image.jpg) or absolute."
+options:
+  - id: min_len
+    flag: -n
+    type: int
+    default: 6
+    label: Minimum length (-n)
+    help: "Shortest string to show; raise it to cut noise."
+command:
+  - strings
+  - -a
+  - "{opt.min_len}"
+  - "{extra}"
+  - "{file}"
+timeout: 120
+learn: https://www.kali.org/tools/binutils/

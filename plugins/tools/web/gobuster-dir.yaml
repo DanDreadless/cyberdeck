@@ -1,0 +1,81 @@
+id: gobuster-dir
+name: gobuster dir
+description: Directory and file brute force (no recursion)
+category: web
+group: dir-bruteforce
+rank: 20
+safety: safe
+detect:
+  binary: gobuster
+  version_cmd: ["gobuster", "--version"]
+  version_regex: 'gobuster version (\S+)'
+  help_cmd: ["gobuster", "dir", "--help"]
+  apt: gobuster
+inputs:
+  url:
+    from: web_url
+    label: URL
+    help: "Where to brute force. gobuster does not recurse: run it again on folders it finds."
+options:
+  - id: wordlist
+    flag: -w
+    type: wordlist
+    default: "{wordlists.dirs_medium}"
+    label: Wordlist
+    help: "Names to try."
+  - id: extensions
+    flag: -x
+    type: string
+    default: "php,txt"
+    label: Extensions
+    help: "Also try each word with these extensions. Pre-filled when PHP was fingerprinted."
+    when: { software: [php] }
+  - id: insecure
+    flag: -k
+    type: bool
+    default: true
+    label: Ignore TLS errors (-k)
+    help: "HTB certificates are self-signed."
+  - id: threads
+    flag: -t
+    type: int
+    default: 40
+    label: Threads
+    advanced: true
+    help: "Concurrent requests."
+  - id: exclude_length
+    flag: --exclude-length
+    type: string
+    label: Exclude length
+    advanced: true
+    help: "Hide responses of this size (use when every path returns 200)."
+presets:
+  quick: { wordlist: "{wordlists.dirs_small}" }
+command:
+  - gobuster
+  - dir
+  - -u
+  - "{url}"
+  - "{opt.wordlist}"
+  - "{opt.extensions}"
+  - "{opt.insecure}"
+  - "{opt.threads}"
+  - "{opt.exclude_length}"
+  - -o
+  - "{out}/gobuster.txt"
+  - -q
+  - --no-color
+  - --no-progress
+  - "{extra}"
+timeout: 1800
+outputs:
+  - path: "{out}/gobuster.txt"
+parser: gobuster_dir
+learn: https://book.hacktricks.xyz/network-services-pentesting/pentesting-web#brute-force-directories-and-files
+teach:
+  does: >
+    Asks the site for every path in a [[wordlist]], one level deep
+    ([[directory-bruteforce|directory brute-forcing]]).
+  look_for: >
+    Paths that answer 200, 301/302 or 403 ([[http-status|status codes]]). Re-run inside
+    interesting folders, since gobuster doesn't recurse.

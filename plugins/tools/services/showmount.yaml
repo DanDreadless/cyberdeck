@@ -1,0 +1,41 @@
+id: showmount
+name: showmount (NFS exports)
+description: List the NFS shares a host exports and who may mount them
+category: services
+safety: safe
+ports: [111, 2049]
+detect:
+  binary: showmount
+  apt: nfs-common
+  version_cmd: ["showmount", "--version"]
+  version_regex: 'showmount for (\S+)'
+  help_cmd: ["showmount", "--help"]
+inputs:
+  target:
+    from: target_ip
+    label: Target
+    help: "NFS server (ports 111 and 2049)."
+command:
+  - showmount
+  - -e
+  - "{extra}"
+  - "{target}"
+timeout: 120
+outputs: []
+parser: lines_regex
+parser_config:
+  patterns:
+    # /srv/backups *   or   /home 10.10.14.0/24
+    - regex: '^(?P<name>/\S*)\s+(?P<perms>\S.*?)\s*$'
+      type: share
+      set: { host: "{target}" }
+      tags: [nfs]
+      confidence: 0.9
+notes: "An export open to * can be mounted from Kali (needs root): sudo mount -t nfs -o nolock <ip>:/path /mnt/x. Files keep their owner's uid: a matching local user can read them."
+learn: https://book.hacktricks.xyz/network-services-pentesting/nfs-service-pentesting
+teach:
+  does: >
+    Lists the folders a Linux host shares over [[nfs|NFS]] and who may mount them.
+  look_for: >
+    Exports open to '*' (everyone): you can mount them on Kali and read the files, often home
+    directories or backups.

@@ -1,0 +1,90 @@
+# Techniques you can tag a lesson with (the flag questions, docs/LEARNING-PLAN.md W6) and that
+# learning paths use as skills. `when` (same conditions as checklists) says on which boxes a
+# lesson with this technique is worth reminding you of ("You've seen this before").
+# Add or replace entries in ~/.config/cyberdeck/techniques.yaml.
+
+- id: dir-bruteforce
+  title: "Hidden directories and files"
+  term: directory-bruteforce
+  when: { has_web: true }
+- id: vhost-fuzzing
+  title: "Virtual hosts / subdomains"
+  term: vhost
+  when: { has_web: true, has_domain: true }
+- id: default-creds
+  title: "Default or weak login"
+  term: default-credentials
+  when: { has_web: true }
+- id: public-exploit
+  title: "Public exploit for a known version"
+  term: cve
+  when: { has_versions: true }
+- id: source-review
+  title: "Reading page or app source"
+  term: source-code-review
+  when: { has_web: true }
+- id: git-exposure
+  title: "Exposed .git or backup files"
+  term: git-exposure
+  when: { has_web: true }
+- id: config-file-creds
+  title: "Passwords in config files"
+  term: credential
+  when: { has_services: true }
+- id: password-reuse
+  title: "Password reuse"
+  term: password-reuse
+  when: { has_credentials: true }
+- id: hash-cracking
+  title: "Cracking a hash"
+  term: hash-cracking
+  when: { has_hashes: true }
+- id: smb-shares
+  title: "Readable SMB shares"
+  term: smb
+  when: { kinds: [smb] }
+- id: anonymous-ftp
+  title: "Anonymous FTP"
+  term: ftp
+  when: { kinds: [ftp] }
+- id: open-database
+  title: "A database with no password"
+  when: { kinds: [mysql, postgres, redis, mssql] }
+- id: sqli
+  title: "SQL injection"
+  term: sqli
+  when: { has_web: true }
+- id: lfi
+  title: "Reading files through the web app (LFI / path traversal)"
+  when: { has_web: true }
+- id: file-upload
+  title: "Abusing a file upload"
+  when: { has_web: true }
+- id: idor
+  title: "Changing an id in a URL to see someone else's data (IDOR)"
+  when: { has_web: true }
+- id: kerberos-roasting
+  title: "AS-REP roasting / Kerberoasting"
+  term: kerberos
+  when: { kinds: [kerberos] }
+- id: sudo-misconfig
+  title: "sudo rights (sudo -l)"
+  term: sudo
+  when: { foothold: true }
+- id: suid
+  title: "SUID programs"
+  term: suid
+  when: { foothold: true }
+- id: capabilities
+  title: "Linux capabilities on a program"
+  when: { foothold: true }
+- id: cron
+  title: "Scheduled jobs (cron)"
+  when: { foothold: true }
+- id: internal-service
+  title: "A service only listening inside the box"
+  when: { foothold: true }
+- id: ssh-keys
+  title: "SSH keys lying around"
+  term: ssh
+  when: { foothold: true }

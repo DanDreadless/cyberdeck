@@ -1,0 +1,36 @@
+id: steghide
+name: steghide
+description: Extract data hidden in JPEG, BMP, WAV or AU files
+category: forensics
+safety: safe
+detect:
+  binary: steghide
+  apt: steghide
+  version_cmd: ["steghide", "--version"]
+  version_regex: 'steghide (\S+)'
+inputs:
+  file:
+    type: path
+    label: Cover file
+    help: "Path to the file, relative to the box folder (e.g. loot/image.jpg) or absolute."
+options:
+  - id: passphrase
+    flag: -p
+    type: string
+    label: Passphrase
+    help: "Passphrase to try. For an empty passphrase (common in CTFs) put -p '' in Extra args."
+command:
+  - steghide
+  - extract
+  - -sf
+  - "{file}"
+  - -xf
+  - "{out}/steghide-extracted"
+  - -f
+  - "{opt.passphrase}"
+  - "{extra}"
+timeout: 120
+outputs:
+  - path: "{out}/steghide-extracted"
+notes: "steghide asks for a passphrase when none is given and can't ask here, so set one, or put -p '' in Extra args for an empty one."
+learn: https://www.kali.org/tools/steghide/
