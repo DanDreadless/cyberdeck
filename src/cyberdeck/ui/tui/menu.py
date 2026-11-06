@@ -19,7 +19,7 @@ from cyberdeck.core.scope import ScopeError
 from cyberdeck.core.userconfig import load_user_config
 from cyberdeck.core.workspace import Workspace, WorkspaceError
 from cyberdeck.ui.banner import logo_markup
-from cyberdeck.ui.tui.modals import ConfirmModal
+from cyberdeck.ui.tui.modals import ConfirmModal, InputModal
 
 _SHORT = ["ports", "versions", "udp", "hosts", "user", "root"]
 
@@ -81,6 +81,7 @@ class MenuScreen(Screen[None]):
     BINDINGS = [
         Binding("enter,o", "open", "Open box"),
         Binding("n", "new", "New box"),
+        Binding("i", "set_ip", "Change IP"),
         Binding("t", "tools", "Tools"),
         Binding("p", "progress", "Progress"),
         Binding("d", "app.setup_check", "Setup check"),
@@ -109,6 +110,7 @@ class MenuScreen(Screen[None]):
         yield Static(
             Text(
                 "New here? d = setup check (VPN, tools, wordlists), g = glossary, "
+                "i = new IP for a re-spawned box, "
                 "p = learning path and skills, n = start a box. Free first boxes: Starting "
                 "Point Tier 0 (Meow, Fawn, Dancing).",
                 style="dim",
@@ -163,15 +165,23 @@ class MenuScreen(Screen[None]):
     def _selected(self) -> None:
         self.action_open()
 
-    def action_open(self) -> None:
+    def _highlighted(self) -> Workspace | None:
         table: DataTable[Any] = self.query_one("#boxes", DataTable)
         if not table.row_count:
+            return None
+        key = str(table.coordinate_to_cell_key(table.cursor_coordinate).row_key.value)
+        return self._boxes[key]
+
+    def action_open(self) -> None:
+        ws = self._highlighted()
+        if ws is None:
             self.action_new()
             return
-        key = str(table.coordinate_to_cell_key(table.cursor_coordinate).row_key.value)
-        self.open_box(self._boxes[key])
+        self.open_box(ws)
 
-    def open_box(self, ws: Workspace, *, offer_scan: bool = False) -> None:
+    def open_box(
+        self, ws: Workspace, *, offer_scan: bool = False, move_hosts: bool = False
+    ) -> None:
         from cyberdeck.ui.tui.dashboard import DashboardScreen
 
         opened = services.open_target(self.settings, str(ws.path))
@@ -180,6 +190,45 @@ class MenuScreen(Screen[None]):
         self.app.push_screen(dashboard)
         if offer_scan:
             dashboard.call_after_refresh(dashboard.action_scan)
+        if move_hosts:
+            dashboard.call_after_refresh(dashboard.action_hosts)
+
+    @work
+    async def action_set_ip(self) -> None:
+        """HTB gives a re-spawned box a new IP: update it here, keep everything else."""
+        ws = self._highlighted()
+        if ws is None:
+            self.notify("No boxes yet: n = new box", severity="warning")
+            return
+        answer = await self.app.push_screen_wait(
+            InputModal(f"New IP for {ws.meta.name} (it was {ws.meta.ip})", ws.meta.ip)
+        )
+        if answer is None or answer.strip() in ("", ws.meta.ip):
+            return
+        try:
+            old = services.set_ip(self.settings, ws, answer.strip())
+        except ScopeError as exc:
+            self.notify(str(exc), severity="error")
+            return
+        self.refresh_boxes()
+        self.notify(
+            f"{ws.meta.name}: {old} -> {ws.meta.ip}. Findings are kept; re-scan (c) to check "
+            "nothing else changed."
+        )
+        lines, _ = services.hosts_status(ws, self.settings)
+        if not lines:
+            return
+        move = await self.app.push_screen_wait(
+            ConfirmModal(
+                f"Move {ws.meta.name}'s hosts file line to {ws.meta.ip}?",
+                f"{self.settings.hosts_file} still points the box's names at {old}. This opens "
+                "the box and shows the exact change first (needs sudo).",
+                yes="Move it",
+                no="Later (h on the dashboard)",
+            )
+        )
+        if move:
+            self.open_box(ws, move_hosts=True)
 
     def action_progress(self) -> None:
         from cyberdeck.ui.tui.journal import ProgressScreen

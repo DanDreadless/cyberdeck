@@ -33,7 +33,7 @@ from cyberdeck.ui.tui.dashboard import DashboardScreen
 from cyberdeck.ui.tui.jobs import JobScreen
 from cyberdeck.ui.tui.loot import LootScreen
 from cyberdeck.ui.tui.menu import MenuScreen
-from cyberdeck.ui.tui.modals import HostsModal, InputModal
+from cyberdeck.ui.tui.modals import ConfirmModal, HostsModal, InputModal
 from cyberdeck.ui.tui.notes import NotesScreen
 from cyberdeck.ui.tui.run_dialog import RunDialog
 from cyberdeck.ui.tui.tools import ToolsScreen
@@ -331,6 +331,65 @@ async def test_notes_editor_saves(lantern: Workspace, settings: Settings) -> Non
         await pilot.pause()
         assert isinstance(app.screen, DashboardScreen)
     assert "creds in backup.zip" in services.read_notes(lantern)
+
+
+async def test_menu_changes_a_box_ip(lantern: Workspace, settings: Settings) -> None:
+    app = CyberdeckApp(settings)
+    async with app.run_test(size=SIZE) as pilot:
+        await pilot.pause()
+        assert isinstance(app.screen, MenuScreen)
+        await pilot.press("i")
+        await pilot.pause()
+        modal = app.screen
+        assert isinstance(modal, InputModal)
+        assert modal.query_one(Input).value == IP  # the current IP, ready to edit
+        modal.query_one(Input).value = "10.129.231.99"
+        await pilot.press("enter")
+        await pilot.pause()
+        assert isinstance(app.screen, MenuScreen)  # no hosts line: nothing to move
+        table: DataTable[Any] = app.screen.query_one("#boxes", DataTable)
+        assert "10.129.231.99" in [str(c) for c in table.get_row_at(0)]
+    reopened = Workspace.open(lantern.path)
+    assert reopened.meta.ip == "10.129.231.99"
+    assert "IP changed 10.129.231.15 -> 10.129.231.99" in reopened.notes_file.read_text()
+    assert services.list_findings(reopened)  # findings kept
+
+
+async def test_menu_ip_change_refuses_out_of_scope(lantern: Workspace, settings: Settings) -> None:
+    app = CyberdeckApp(settings)
+    async with app.run_test(size=SIZE) as pilot:
+        await pilot.pause()
+        await pilot.press("i")
+        await pilot.pause()
+        app.screen.query_one(Input).value = "8.8.8.8"
+        await pilot.press("enter")
+        await pilot.pause()
+        assert isinstance(app.screen, MenuScreen)
+    assert Workspace.open(lantern.path).meta.ip == IP
+
+
+async def test_menu_ip_change_moves_the_hosts_line(lantern: Workspace, settings: Settings) -> None:
+    services.hosts_apply(
+        services.hosts_plan_add(lantern, ["lantern.htb"], settings), lantern, settings
+    )
+    app = CyberdeckApp(settings)
+    async with app.run_test(size=SIZE) as pilot:
+        await pilot.pause()
+        await pilot.press("i")
+        await pilot.pause()
+        app.screen.query_one(Input).value = "10.129.231.99"
+        await pilot.press("enter")
+        await pilot.pause()
+        assert isinstance(app.screen, ConfirmModal)  # offer to move the hosts line
+        await pilot.press("y")
+        await pilot.pause()
+        await pilot.pause()
+        assert isinstance(app.screen, HostsModal)  # the box opened, the diff is shown
+        await pilot.click("#yes")
+        await pilot.pause()
+        await pilot.pause()
+        assert isinstance(app.screen, DashboardScreen)
+    assert hostsfile.resolves_to(settings.hosts_file, "lantern.htb", "10.129.231.99")
 
 
 async def test_writeup_screen_shows_and_edits_existing_file(

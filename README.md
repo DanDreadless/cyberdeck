@@ -99,7 +99,9 @@ cyberdeck                         # open the TUI
 ```
 
 Cyberdeck opens on your box list: every box with its IP, when you last worked on it, and how
-far you got (ports, versions, UDP, hosts file, user and root flags).
+far you got (ports, versions, UDP, hosts file, user and root flags). HTB gives a box a new
+IP when it's re-spawned: highlight it and press `i` to change it. Everything you found is
+kept, and Cyberdeck offers to move the box's `/etc/hosts` line too.
 
 <div align="center">
 
