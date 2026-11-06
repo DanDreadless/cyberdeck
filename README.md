@@ -123,6 +123,7 @@ From there, work the box as usual and use the dashboard to keep track and decide
 | `k` / `!` | Methodology checklist / "I'm stuck" |
 | `f` | Record a flag |
 | `ctrl+t` | Change theme |
+| `=` / `ctrl+l` | Reset pane sizes / redraw the screen |
 | `?` / `ctrl+p` | Every key on this screen / search all actions |
 
 Prefer the command line? Everything works there too:

@@ -595,10 +595,11 @@ async def test_dashboard_panes_resize_and_remember(lantern: Workspace, settings:
         # the dividers inside the panes work the same way
         before = height("#next")
         await pilot.mouse_down("#split-next")
-        await pilot.hover("#split-next", offset=(0, -3))
+        await pilot.hover("#split-next", offset=(0, -1))
         await pilot.mouse_up("#split-next")
         await pilot.pause()
-        assert height("#next") == before + 3
+        assert height("#next") == before + 1
+        assert height("#findings") >= 6  # a divider never squeezes the findings out
         await pilot.mouse_down("#split-jobs")
         await pilot.hover("#split-jobs", offset=(-10, 0))
         await pilot.mouse_up("#split-jobs")
@@ -629,6 +630,46 @@ async def test_dashboard_panes_resize_and_remember(lantern: Workspace, settings:
         assert dash.query_one("#left").outer_size.width == 38
         assert dash.query_one("#bottom").outer_size.height == 10
         assert load_user_config().tui_layout == {}
+
+
+@pytest.mark.parametrize("layout", ["expert", "beginner"])
+async def test_saved_pane_sizes_never_squeeze_out_the_findings(
+    lantern: Workspace, settings: Settings, layout: str
+) -> None:
+    """Regression: a job panel dragged tall (to read long sqlmap output) plus a tall Next
+    steps pane were restored as-is on the next start and left the findings 0 rows high."""
+    cfg = load_user_config()
+    cfg.layout = layout  # type: ignore[assignment]
+    cfg.tui_layout = {"left": 50, "next": 15, "bottom": 34}
+    save_user_config(cfg)
+    app = CyberdeckApp(settings, box=str(lantern.path))
+    async with app.run_test(size=(160, 50)) as pilot:
+        dash = await _dashboard(app, pilot)
+        await pilot.pause()
+        await pilot.pause()
+
+        def height(sel: str) -> int:
+            return int(dash.query_one(sel).outer_size.height)
+
+        assert height("#findings") >= 6 and height("#next") >= 4
+        for size in ((120, 30), (100, 24)):
+            await pilot.resize_terminal(*size)
+            await pilot.pause()
+            await pilot.pause()
+            assert height("#bottom") < 34  # squeezed to fit...
+            assert height("#next") >= 4, size
+            if size[1] >= 30:  # below that the beginner layout can't fit 6 rows of findings
+                assert height("#findings") >= 6, size
+            # nothing overflows, so hovering can't scroll the headings off the screen
+            for sel in ("#main", "#left", "#right"):
+                assert dash.query_one(sel).max_scroll_y == 0, (size, sel)
+            assert dash.max_scroll_y == 0, size
+        await pilot.resize_terminal(160, 90)
+        await pilot.pause()
+        await pilot.pause()
+        assert height("#bottom") == 34 and height("#next") == 15  # ...but not forgotten
+        assert height("#findings") >= 6
+    assert load_user_config().tui_layout == {"left": 50, "next": 15, "bottom": 34}
 
 
 async def test_run_dialog_wordlist_picker_and_man_page(

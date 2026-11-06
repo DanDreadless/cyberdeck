@@ -105,6 +105,7 @@ class CyberdeckApp(App[None]):
     BINDINGS = [
         Binding("ctrl+q", "quit", "Quit", show=False),
         Binding("ctrl+t", "change_theme", "Theme", show=False),
+        Binding("ctrl+l", "redraw", "Redraw the screen", show=False),
     ]
 
     def __init__(self, settings: Settings | None = None, box: str | None = None) -> None:
@@ -161,6 +162,11 @@ class CyberdeckApp(App[None]):
             return
         self.exit()
 
+    def action_redraw(self) -> None:
+        """ctrl+l: repaint every cell, for when something else scribbled on the terminal."""
+        self.refresh(repaint=True, layout=True)
+        self.screen.refresh(repaint=True, layout=True)
+
     def action_change_theme(self) -> None:
         """ctrl+t, and Textual's own "Theme" palette command: our picker, which saves."""
         from cyberdeck.ui.tui.theme_picker import ThemePicker
@@ -209,6 +215,11 @@ class CyberdeckApp(App[None]):
                     screen.action_writeup,
                 ),
                 (
+                    "Reset pane sizes",
+                    "Put the dashboard panels back to their default sizes (=)",
+                    screen.action_reset_layout,
+                ),
+                (
                     "Beginner / expert layout",
                     "Show or hide the journey bar and Now card",
                     screen.action_toggle_layout,
@@ -220,6 +231,7 @@ class CyberdeckApp(App[None]):
         yield SystemCommand(
             "Settings", "Layout, learning aids, workspace, theme", self.action_settings_screen
         )
+        yield SystemCommand("Redraw the screen", "Repaint everything (ctrl+l)", self.action_redraw)
         yield SystemCommand(
             "Setup check", "VPN, tools, wordlists, sudo, clock", self.action_setup_check
         )

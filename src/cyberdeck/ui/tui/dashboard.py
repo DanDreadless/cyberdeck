@@ -215,7 +215,8 @@ class DashboardScreen(Screen[None]):
         Binding("ctrl+right", "resize('split-left', 2)", "Wider side panel", show=False),
         Binding("ctrl+up", "resize('split-bottom', 1)", "Taller job panel", show=False),
         Binding("ctrl+down", "resize('split-bottom', -1)", "Shorter job panel", show=False),
-        Binding("equals_sign", "reset_layout", "Reset pane sizes", show=False),
+        Binding("equals_sign", "reset_layout", "Reset pane sizes", show=False),  # also ctrl+p
+        Binding("ctrl+l", "app.redraw", "Redraw the screen", show=False),
     ]
 
     def __init__(self, ws: Workspace, settings: Settings) -> None:
@@ -241,7 +242,9 @@ class DashboardScreen(Screen[None]):
             with Vertical(id="left"):
                 yield Static(id="box-head")
                 yield Tree("Services", id="services")
-            yield Splitter("left", axis="x", min_size=16, min_other=40, id="split-left")
+            yield Splitter(
+                "left", axis="x", min_size=16, min_other=40, flex="right", id="split-left"
+            )
             with Vertical(id="right"):
                 yield Static(id="journey")
                 yield Static(id="now")
@@ -255,16 +258,30 @@ class DashboardScreen(Screen[None]):
                             table.add_columns(*columns)
                             yield table
                 yield Splitter(
-                    "next", axis="y", after=True, min_size=4, min_other=6, id="split-next"
+                    "next",
+                    axis="y",
+                    after=True,
+                    min_size=4,
+                    min_other=6,  # the findings tabs keep a few rows
+                    flex="findings",
+                    id="split-next",
                 )
                 with Vertical(id="next"):
                     yield Label("Next steps", classes="section")
                     yield DataTable(id="suggestions", cursor_type="row")
                     yield Static(id="why")
-        yield Splitter("bottom", axis="y", after=True, min_size=3, min_other=12, id="split-bottom")
+        yield Splitter(
+            "bottom",
+            axis="y",
+            after=True,
+            min_size=3,
+            min_other=self._main_needs,  # findings + next steps keep room above the jobs
+            flex="main",
+            id="split-bottom",
+        )
         with Horizontal(id="bottom"):
             yield DataTable(id="jobs", cursor_type="row")
-            yield Splitter("jobs", axis="x", min_size=16, min_other=20, id="split-jobs")
+            yield Splitter("jobs", axis="x", min_size=16, min_other=20, flex="log", id="split-jobs")
             yield RichLog(id="log", wrap=True, markup=False, max_lines=2000)
         yield Footer()
 
@@ -319,6 +336,7 @@ class DashboardScreen(Screen[None]):
         self._fill_suggestions()
         self._fill_now(summary, progress)
         self._fill_jobs()
+        self.call_after_refresh(self._fit_layout)  # the Now card may have changed height
         pending = len(services.list_approvals(self.ws))
         banner = self.query_one("#approvals-banner", Static)
         banner.display = bool(pending)
@@ -633,23 +651,70 @@ class DashboardScreen(Screen[None]):
         self.app.pop_screen()
 
     # -- pane sizes (drag a divider, ctrl+arrows, = to reset) ---------------------------
+    FINDINGS_MIN = 6  # rows the findings tabs always keep (tab bar, header, a few rows)
+    NEXT_MIN = 4
+
+    def _main_needs(self) -> int:
+        """Rows the top half needs: whatever shows above the findings (journey bar, Now
+        card, approvals banner), the findings, the divider and the smallest Next steps."""
+        above = sum(
+            w.outer_size.height
+            for w in self.query("#journey, #now, #approvals-banner")
+            if w.display
+        )
+        return above + self.FINDINGS_MIN + 1 + self.NEXT_MIN
+
+    _OUTER_SPLITS = ("split-bottom", "split-left", "split-jobs")
+    _INNER_SPLITS = ("split-next",)  # inside #right, so fitted once #right has its size
+
     def _restore_layout(self) -> None:
         saved = load_user_config().tui_layout
         for splitter in self.query(Splitter):
             if splitter.target in saved:
-                splitter.set_size(saved[splitter.target])
+                splitter.preferred = saved[splitter.target]
+        self._fit_layout()
+
+    def _fit_layout(self) -> None:
+        """Apply the saved pane sizes as far as this terminal allows, outer panes first, so a
+        job panel made tall to read long output can't squeeze the findings away."""
+        for splitter_id in self._OUTER_SPLITS:
+            self.query_one(f"#{splitter_id}", Splitter).fit()
+        self.call_after_refresh(self._fit_inner)
+
+    NOW_MAX = 8  # the Now card's usual cap (app CSS); less when the terminal is short
+
+    def _fit_inner(self) -> None:
+        # A short terminal can't hold a full Now card above the findings and Next steps: cap
+        # it to what's left, so the right column never overflows (and so never scrolls).
+        right = self.query_one("#right")
+        now = self.query_one("#now")
+        others = sum(
+            w.outer_size.height for w in self.query("#journey, #approvals-banner") if w.display
+        )
+        room = right.size.height - others - self.FINDINGS_MIN - 1 - self.NEXT_MIN
+        now.styles.max_height = max(3, min(self.NOW_MAX, room))
+        for splitter_id in self._INNER_SPLITS:
+            self.query_one(f"#{splitter_id}", Splitter).fit()
+
+    def on_resize(self) -> None:
+        self.call_after_refresh(self._fit_layout)
 
     def _save_layout(self) -> None:
         cfg = load_user_config()
-        cfg.tui_layout = {s.target: s.value for s in self.query(Splitter) if s.value is not None}
+        cfg.tui_layout = {
+            s.target: s.preferred for s in self.query(Splitter) if s.preferred is not None
+        }
         save_user_config(cfg)
 
     def on_splitter_resized(self, message: Splitter.Resized) -> None:
         self._save_layout()
+        self.call_after_refresh(self._fit_inner)
 
     def action_resize(self, splitter_id: str, delta: int) -> None:
         self.query_one(f"#{splitter_id}", Splitter).nudge(delta)
         self._save_layout()
+        if splitter_id in self._OUTER_SPLITS:
+            self.call_after_refresh(self._fit_inner)
 
     def action_reset_layout(self) -> None:
         for splitter in self.query(Splitter):
