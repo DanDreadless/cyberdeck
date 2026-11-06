@@ -18,7 +18,7 @@ from cyberdeck.core.config import Settings
 from cyberdeck.core.scope import ScopeError
 from cyberdeck.core.userconfig import load_user_config
 from cyberdeck.core.workspace import Workspace, WorkspaceError
-from cyberdeck.ui.banner import BANNER
+from cyberdeck.ui.banner import logo_markup
 from cyberdeck.ui.tui.modals import ConfirmModal
 
 _SHORT = ["ports", "versions", "udp", "hosts", "user", "root"]
@@ -96,8 +96,13 @@ class MenuScreen(Screen[None]):
         self.settings = settings
         self._boxes: dict[str, Workspace] = {}
 
+    def on_resize(self) -> None:
+        """The block-art logo when it fits, the plain name when it doesn't."""
+        banner = self.query_one("#banner", Static)
+        banner.update(logo_markup(self.size.width - 4))  # #banner has 2 cells of padding a side
+
     def compose(self) -> ComposeResult:
-        yield Static(Text(BANNER), id="banner")  # colour from the theme ($primary)
+        yield Static(logo_markup(0), id="banner")  # the real art once the width is known
         yield Label("Boxes (most recently opened first)", classes="section")
         yield DataTable(id="boxes", cursor_type="row")
         yield Static(id="loose", classes="dim")

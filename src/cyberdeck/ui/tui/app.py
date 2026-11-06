@@ -16,7 +16,7 @@ from cyberdeck.ui.tui.themes import CYBERDECK_THEMES, DEFAULT_THEME
 
 CSS = """
 Screen { background: $background; }
-#banner { color: $primary; text-style: bold; padding: 0 2; height: auto; }
+#banner { padding: 1 2 0 2; margin-bottom: 1; height: auto; }
 .section { color: $accent; text-style: bold; padding: 0 1; }
 .dim { color: $text-muted; }
 #boxes { height: 1fr; }

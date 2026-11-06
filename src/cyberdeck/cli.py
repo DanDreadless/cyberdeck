@@ -38,7 +38,7 @@ from cyberdeck.core.summarize import JobSummary
 from cyberdeck.core.tools import SCAN_STAGES, all_tools, get_tool, parse_discovered, parse_progress
 from cyberdeck.core.userconfig import load_user_config
 from cyberdeck.core.workspace import Workspace, WorkspaceError
-from cyberdeck.ui.banner import BANNER
+from cyberdeck.ui.banner import logo_text
 from cyberdeck.ui.run_dialog import run_dialog
 from cyberdeck.util import vpn
 from cyberdeck.util.hosts import HostsChange
@@ -507,7 +507,7 @@ def main(
 
         run_tui()
         return
-    console.print(BANNER, style="bold green", highlight=False)
+    console.print(logo_text(), highlight=False)
     console.print(
         "Run [bold]cyberdeck[/] in a terminal for the TUI, or use the commands: [bold]new[/], "
         "[bold]resume[/], [bold]scan[/], [bold]suggest[/], [bold]auto[/]... see "

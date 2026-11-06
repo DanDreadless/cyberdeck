@@ -1,21 +1,14 @@
 <div align="center">
 
-```
-  _____      _                  _           _
- / ____|    | |                | |         | |
-| |    _   _| |__   ___ _ __ __| | ___  ___| | __
-| |   | | | | '_ \ / _ \ '__/ _` |/ _ \/ __| |/ /
-| |___| |_| | |_) |  __/ | | (_| |  __/ (__|   <
- \_____\__, |_.__/ \___|_|  \__,_|\___|\___|_|\_\
-        __/ |
-       |___/
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.png">
+  <img alt="Cyberdeck" src="assets/logo-light.png" width="560">
+</picture>
 
-```
+**A companion for working Hack The Box machines from Kali Linux.**
 
-**A recon handler for Hack The Box, run from Kali Linux.**
-
-Point it at a box. It scans, runs the right Kali tools, keeps track of everything it finds,
-and tells you what to try next and *why*.
+It tracks your progress on each box, suggests what to run next (and *why*), and wraps the
+Kali tools so every command is explained and every result is kept. You still do the hacking.
 
 ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white)
 ![Platform: Kali Linux](https://img.shields.io/badge/platform-Kali%20Linux-557C94?logo=kalilinux&logoColor=white)
@@ -31,30 +24,42 @@ and tells you what to try next and *why*.
 > Cyberdeck is in early, active development. It works end to end on real boxes, but expect
 > rough edges and changes between versions.
 
-## Why Cyberdeck?
+## What it is (and isn't)
 
-Most of a box is enumeration: run nmap, read the output, decide which tool to run next, remember
-the flags, copy the vhost into `/etc/hosts`, try the creds you found somewhere else... Cyberdeck
-does the bookkeeping and the "what next?" so you can focus on the box.
+Cyberdeck is **not** an autopilot. It doesn't exploit boxes or chase flags for you. It's the
+notebook, checklist and tool launcher that sits next to your own terminal and browser:
 
-- **It orchestrates, it doesn't reinvent.** Cyberdeck drives the tools you already have
-  (nmap, feroxbuster, ffuf, netexec, smbmap, hashcat, searchsploit and 40 more) and parses
-  their output.
-- **You always see the command.** Every job opens a Run dialog with presets, explained flags
-  and a live preview of the exact command line before anything touches the target.
-- **It explains itself.** Every suggestion comes with a short *why* and a link to learn more,
-  which makes it useful for beginners and quick for everyone else.
-- **Everything is kept.** Raw output, exact commands and findings live in the box's folder, so
-  you can close it and pick up later, or re-parse old output.
+- **It tracks the box.** Ports, services, versions, hostnames, URLs, users, credentials,
+  hashes, flags, notes and every command run, all in the box's folder. Progress (scanned,
+  enumerated, foothold, user, root) comes from that record, so you can stop and resume any time.
+- **It suggests next steps.** From what's known so far, it ranks what's worth trying next and
+  explains why, with a link to learn more. You decide what to run; you can skip or snooze
+  any suggestion.
+- **It wraps the tools.** nmap, feroxbuster, ffuf, netexec, smbmap, hashcat, searchsploit and
+  40 more run through a Run dialog with presets, explained flags and a preview of the exact
+  command. Their output is saved and parsed into findings.
+
+**A lot of the work still happens outside it**, as it should: reading the site in your
+browser, Burp, poking at a login form, catching a reverse shell, enumerating as a user,
+privilege escalation. Bring what you learn back into Cyberdeck yourself:
+
+- add credentials, users and hashes you found by hand in **Loot** (`l`, then `a`), and record
+  flags with `f`
+- keep free-form notes in the box's `notes.md` (`n`)
+- tick checklist items you did by hand (`k`), add hostnames (`cyberdeck hosts add <name>`), or
+  import an nmap scan you ran yourself (`cyberdeck import`)
+
+The suggestions use whatever you add, the same as tool output: a password you typed in can
+prompt "try it on SMB" or, on Active Directory, a Kerberoast.
 
 ## Features
 
 | Feature | What it does |
 |---|---|
-| **Guided recon** | New-box wizard, HTB VPN check, two-stage nmap (all ports, then scripts and versions on the open ones), automatic import. |
+| **Guided recon** | New-box wizard, HTB VPN check, two-stage nmap (all ports, then scripts and versions on the open ones), each run approved by you and imported automatically. |
 | **Tool plugins** | 45+ Kali tools described in YAML: web, SMB/AD, RPC, creds, forensics, exploit research. Add your own without writing Python. |
 | **Next-step suggestions** | Rules turn findings into ranked next steps with a *why*. They cover fingerprinting a site, adding vhosts to `/etc/hosts` (diff shown first), fuzzing, SMB/AD enumeration and exploit lookups. |
-| **Per-box findings store** | Services, versions, hostnames, URLs, users, credentials, hashes and flags, each with where it came from. Secrets are masked in the UI. |
+| **Per-box findings store** | Services, versions, hostnames, URLs, users, credentials, hashes and flags, from tool output or added by you, each with where it came from. Secrets are masked in the UI. |
 | **TUI and browser UI** | A keyboard-driven Textual dashboard. `cyberdeck --web` serves the same UI in your browser. |
 | **Learning aids** | Beginner layout with a journey bar, plain-English job summaries, a glossary, per-service checklists, a graded "I'm stuck" flow and a rabbit-hole timer. |
 | **Journal and write-ups** | The box's story builds itself from what you did. Draft a write-up (loot and your paths masked), then read and edit it in the app. |
@@ -94,8 +99,8 @@ cyberdeck                         # open the TUI
 ```
 
 In the TUI, press `n` for a new box and give it a name and IP. Cyberdeck checks that the box is
-routed through your VPN, then runs the nmap stages (you approve each one in the Run dialog).
-On the dashboard:
+routed through your VPN, then offers the nmap stages (you approve each one in the Run dialog).
+From there, work the box as usual and use the dashboard to keep track and decide what's next:
 
 | Key | Does |
 |---|---|
@@ -103,7 +108,7 @@ On the dashboard:
 | `r` | Run any tool |
 | `c` | Scan (nmap stages, UDP) |
 | `h` | Add the box's hostnames to `/etc/hosts` (diff, confirm, sudo) |
-| `l` / `n` / `W` | Loot, notes, write-up |
+| `l` / `n` / `W` | Loot (add creds, users, hashes by hand with `a`), notes, write-up |
 | `k` / `!` | Methodology checklist / "I'm stuck" |
 | `f` | Record a flag |
 | `ctrl+t` | Change theme |
@@ -203,15 +208,19 @@ Which box a command acts on: `-t <box>`, else the box folder you're in, else the
    `loot/`, `notes.md`, `target.db` and `target.yaml`. Everything about the box lives there.
    There's no global database, so boxes are independent and easy to back up or delete.
 2. **Scan.** Stage 1 finds all open TCP ports fast. Stage 2 runs `-sC -sV` on exactly those
-   ports. Results are imported automatically.
-3. **Run tools.** Each tool is a YAML manifest. Its inputs (URL, domain, wordlist) are filled in
-   from what's been found, and its output is parsed into findings: URLs, versions, hostnames,
-   users, credentials.
-4. **Suggest.** After every step, rules look at what's known and rank the next moves. Safe
-   recon can be chained automatically. Anything tagged intrusive, brute-force or exploit always
-   waits for you.
-5. **Learn.** Job summaries, the checklist, the "I'm stuck" hints and the questions asked when
-   you capture a flag all feed a journal per box and a playbook across boxes.
+   ports. You approve each stage in the Run dialog, and the results are imported automatically.
+3. **Run tools when you choose to.** Each tool is a YAML manifest. Its inputs (URL, domain,
+   wordlist) are pre-filled from what's been found, you check the command, and its output is
+   parsed into findings: URLs, versions, hostnames, users, credentials.
+4. **Add what you find yourself.** Creds from a config file you read in the browser, a user
+   from a shell, a flag: put them in Loot, notes or the flag prompt, and they count like
+   anything a tool found.
+5. **Get suggestions.** After every change, rules look at what's known and rank the next
+   moves, with a *why*. They're suggestions: run one, skip it, or do something else entirely.
+   If you want, `cyberdeck auto` can chain the **safe** recon ones (each shown first). Anything
+   tagged intrusive, brute-force or exploit only ever runs when you confirm it.
+6. **Learn as you go.** Job summaries, the checklist, the "I'm stuck" hints and the questions
+   asked when you capture a flag build a journal per box and a playbook across boxes.
 
 ## Claude Code (MCP)
 
