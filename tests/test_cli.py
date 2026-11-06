@@ -52,7 +52,7 @@ def fake_nmap(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_version_and_banner() -> None:
     assert "cyberdeck 0.0.1" in runner.invoke(cli.app, ["--version"]).output
-    assert "recon handler" in runner.invoke(cli.app, []).output
+    assert "A CTF Companion Tool" in runner.invoke(cli.app, []).output
 
 
 def test_new_no_scan_import_show_list(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

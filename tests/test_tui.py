@@ -468,7 +468,7 @@ def test_cli_tui_entry_points(monkeypatch: pytest.MonkeyPatch) -> None:
     assert runner.invoke(cli.app, ["tui", "-t", "lantern"]).exit_code == 0
     assert opened == ["lantern"]
     plain = runner.invoke(cli.app, [])  # not a terminal: banner + hint instead of the TUI
-    assert "recon handler" in plain.output and opened == ["lantern"]
+    assert "A CTF Companion Tool" in plain.output and opened == ["lantern"]
 
 
 def test_terminal_dialog_survives_an_empty_required_input(

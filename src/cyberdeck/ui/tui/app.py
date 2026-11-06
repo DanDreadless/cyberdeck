@@ -100,7 +100,7 @@ ModalScreen { align: center middle; }
 
 class CyberdeckApp(App[None]):
     TITLE = "Cyberdeck"
-    SUB_TITLE = "recon handler for Hack The Box"
+    SUB_TITLE = "A CTF Companion Tool"
     CSS = CSS
     BINDINGS = [
         Binding("ctrl+q", "quit", "Quit", show=False),

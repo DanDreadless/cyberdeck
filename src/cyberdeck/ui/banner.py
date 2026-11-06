@@ -7,7 +7,7 @@ from rich.text import Text
 
 from cyberdeck.ui.logo import LOGO, LOGO_WIDTH
 
-TAGLINE = "recon handler for hack the box"
+TAGLINE = "A CTF Companion Tool"
 # Narrow terminals can't fit the art: the name in the same two colours instead.
 LOGO_NARROW = "[b $foreground]CYBER[/][b $accent]DECK[/]"
 
