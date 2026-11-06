@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "cyberdeck"
 version = "0.0.1"
-description = "Recon handler for Hack The Box targets: ingest nmap, orchestrate Kali tools, track findings, suggest next steps."
+description = "A CTF companion tool: tracks your progress on a Hack The Box machine, suggests what to run next (and why) and wraps the Kali tools."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

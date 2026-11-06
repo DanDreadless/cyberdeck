@@ -35,8 +35,11 @@ PREVIEW_TTL = 30 * 60  # seconds a preview stays runnable
 START_TIMEOUT = 20.0  # seconds to wait for a launched job to get its id
 
 INSTRUCTIONS = """\
-Cyberdeck is a recon handler for Hack The Box boxes. It keeps everything known about a box
-(services, hostnames, URLs, software, loot) and suggests next steps with the reason for each.
+Cyberdeck is a CTF companion tool for Hack The Box machines. It tracks the user's progress on
+a box, keeps everything known about it (services, hostnames, URLs, software, loot, flags),
+suggests next steps with the reason for each, and wraps the Kali tools. It is not an autopilot:
+the user works the box (browser, shells, exploits, privesc) and decides what to run. Suggestions
+are options to discuss, not a queue to work through on your own.
 
 How to work with it:
 1. target_progress / target_summary / list_suggestions to see where the box is up to.
@@ -47,6 +50,8 @@ How to work with it:
    queued for the human to approve in Cyberdeck (TUI Approvals or `cyberdeck approvals`).
    There is no way around that; tell the user what is waiting.
 4. Only the box's scope (HTB ranges + the user's) can be targeted.
+5. Record what the user finds outside Cyberdeck (creds from a config file, a user from a
+   shell, a flag) with add_finding / add_note / record_flag so the suggestions use it.
 Passwords, hashes and flags are masked unless the user enabled mcp.reveal_secrets.
 """
 
