@@ -13,8 +13,10 @@ import asyncio
 import os
 import shlex
 import shutil
+import signal
 import subprocess
 import sys
+import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -23,6 +25,7 @@ from typing import Any, TextIO
 from cyberdeck.core.events import JobFinished, JobStarted, bus
 from cyberdeck.core.models import Job, JobStatus, utcnow
 from cyberdeck.core.scope import Scope, check_argv_scope
+from cyberdeck.core.termsafe import terminal_safe
 from cyberdeck.core.workspace import Workspace
 
 LineCallback = Callable[[str, str], None]  # (stream "out"|"err", line)
@@ -38,8 +41,15 @@ def tool_env() -> dict[str, str]:
     Under ``uv run`` (or any venv) the venv's ``bin/`` is first on PATH, so Python-based Kali
     tools with ``#!/usr/bin/env python3`` (dirsearch, impacket, ...) would start with Cyberdeck's
     interpreter and miss their system packages.
+
+    ``COLUMNS``/``LINES`` are set because a tool's stdin is /dev/null and its stdout a pipe, so
+    it can't ask the terminal. sqlmap then falls back to curses, which writes screen-control
+    codes into its output (see :mod:`cyberdeck.core.termsafe`).
     """
     env = dict(os.environ)
+    size = shutil.get_terminal_size((120, 40))
+    env.setdefault("COLUMNS", str(size.columns))
+    env.setdefault("LINES", str(size.lines))
     if sys.prefix == sys.base_prefix:
         return env
     venv_bin = str(Path(sys.prefix) / ("Scripts" if os.name == "nt" else "bin"))
@@ -175,7 +185,9 @@ class Runner:
             err_path.write_text(note + "\n", encoding="utf-8")
             return finish(JobStatus.FAILED, None, note)
 
-        job = self._save(job.model_copy(update={"pid": os.getpid()}))  # who owns this job
+        # pid: who owns this job. child_pid: what cancel_job() signals, from any process.
+        meta = {**job.meta, "child_pid": proc.pid, "child_sudo": argv[:1] == ["sudo"]}
+        job = self._save(job.model_copy(update={"pid": os.getpid(), "meta": meta}))
         with (
             out_path.open("w", encoding="utf-8") as out_fh,
             err_path.open("w", encoding="utf-8") as err_fh,
@@ -192,7 +204,7 @@ class Runner:
                     fh.write(line)
                     fh.flush()
                     if on_line is not None:
-                        on_line(name, line.rstrip("\r\n"))
+                        on_line(name, terminal_safe(line))
 
             work = asyncio.gather(
                 pump(proc.stdout, out_fh, "out"), pump(proc.stderr, err_fh, "err"), proc.wait()
@@ -207,7 +219,66 @@ class Runner:
                 finish(JobStatus.CANCELLED, proc.returncode, "cancelled")
                 raise
         code = proc.returncode
+        if self._kill_requested(job.id):
+            return finish(JobStatus.CANCELLED, code, "killed")
         return finish(JobStatus.DONE if code == 0 else JobStatus.FAILED, code, None)
+
+    def _kill_requested(self, job_id: int) -> bool:
+        with self.ws.store() as store:
+            stored = store.get_job(job_id)
+        return bool(stored is not None and stored.meta.get("kill_requested"))
+
+
+class CancelError(Exception):
+    """The job can't be killed (not running, or started by an older Cyberdeck)."""
+
+
+def cancel_job(ws: Workspace, job_id: int, *, grace: float = 5.0) -> None:
+    """Kill a running job, whichever Cyberdeck process started it (TUI, CLI or MCP server).
+
+    The job is marked first so its runner records it as cancelled rather than failed. The tool
+    gets SIGTERM, then SIGKILL after ``grace`` seconds. A ``sudo`` job's process belongs to
+    root, so the signal goes through ``sudo -n kill`` (the credentials are already cached,
+    since the job itself started with ``sudo -n``).
+    """
+    with ws.store() as store:
+        job = store.get_job(job_id)
+        if job is None:
+            raise CancelError(f"no job #{job_id}")
+        if job.status is not JobStatus.RUNNING:
+            raise CancelError(f"job #{job_id} is {job.status.value}, not running")
+        child = job.meta.get("child_pid")
+        if not isinstance(child, int) or (job.pid is not None and not pid_alive(job.pid)):
+            raise CancelError(f"job #{job_id} can't be killed from here (no live process)")
+        store.set_job_meta(job_id, {**job.meta, "kill_requested": True})
+    sudo = bool(job.meta.get("child_sudo"))
+    _signal(child, signal.SIGTERM, sudo=sudo)
+    deadline = time.monotonic() + grace
+    while time.monotonic() < deadline:
+        if not pid_alive(child):
+            return
+        time.sleep(0.1)
+    _signal(child, getattr(signal, "SIGKILL", signal.SIGTERM), sudo=sudo)
+
+
+def _signal(pid: int, sig: int, *, sudo: bool) -> None:
+    try:
+        os.kill(pid, sig)
+        return
+    except ProcessLookupError:
+        return
+    except PermissionError:
+        if not sudo:
+            raise CancelError(f"not allowed to stop process {pid}") from None
+    result = subprocess.run(
+        ["sudo", "-n", "kill", f"-{int(sig)}", str(pid)],
+        capture_output=True,
+        check=False,
+        timeout=10,
+        stdin=subprocess.DEVNULL,
+    )
+    if result.returncode != 0 and pid_alive(pid):
+        raise CancelError(f"sudo kill failed: {result.stderr.decode(errors='replace').strip()}")
 
 
 # --- local helpers (never target-facing) ----------------------------------------------------

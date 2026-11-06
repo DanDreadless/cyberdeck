@@ -224,6 +224,8 @@ Which box a command acts on: `-t <box>`, else the box folder you're in, else the
 3. **Run tools when you choose to.** Each tool is a YAML manifest. Its inputs (URL, domain,
    wordlist) are pre-filled from what's been found, you check the command, and its output is
    parsed into findings: URLs, versions, hostnames, users, credentials.
+   Tools run in the background. Open a job (`j`) to follow its output live, or `k` to kill
+   it if it's going nowhere.
 4. **Add what you find yourself.** Creds from a config file you read in the browser, a user
    from a shell, a flag: put them in Loot, notes or the flag prompt, and they count like
    anything a tool found.

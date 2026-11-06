@@ -12,15 +12,18 @@ from types import TracebackType
 from typing import Any
 
 from cyberdeck.core.models import (
+    PAYLOAD_TYPES,
     Approval,
     ApprovalState,
     Finding,
     FindingType,
     Job,
     JobStatus,
+    Software,
     Suggestion,
     SuggestionStatus,
     merge_data,
+    software_key,
     utcnow,
 )
 
@@ -140,7 +143,15 @@ MIGRATIONS: tuple[str, ...] = (
         at          TEXT NOT NULL
     );
     """,
+    # Software keyed by name + version only (was name, version and place): no SQL change,
+    # Store._dedupe_software merges the old per-place duplicates when a box is opened.
+    """
+    SELECT 1;
+    """,
 )
+
+# Schema version from which software findings are one per product + version.
+SOFTWARE_BY_NAME_VERSION = len(MIGRATIONS)
 
 
 @dataclass(frozen=True)
@@ -228,6 +239,96 @@ class Store:
             )
         for version, sql in enumerate(MIGRATIONS[current:], start=current + 1):
             self._conn.executescript(f"BEGIN;\n{sql}\nPRAGMA user_version = {version};\nCOMMIT;")
+        if 0 < current < SOFTWARE_BY_NAME_VERSION:
+            self._dedupe_software()
+
+    # -- software: one finding per product + version -----------------------------------------
+    def _software_match(self, finding: Finding, before: int | None = None) -> sqlite3.Row | None:
+        """The software row a new hit belongs to when the exact key isn't there yet.
+
+        No version: the entry with the same name (a versioned one first). With a version: an
+        entry of the same name that has no version yet (it gets the version and its key).
+        """
+        name = str(finding.data.get("name", "")).strip().lower()
+        version = (finding.data.get("version") or "").strip()
+        best: sqlite3.Row | None = None
+        rows: list[sqlite3.Row] = self._conn.execute(
+            "SELECT * FROM findings WHERE type = ? AND id != ? AND id < ? ORDER BY id",
+            (FindingType.SOFTWARE.value, finding.id or -1, before or 2**62),
+        ).fetchall()
+        for row in rows:
+            data = json.loads(row["data"])
+            if str(data.get("name", "")).strip().lower() != name:
+                continue
+            has_version = bool((data.get("version") or "").strip())
+            if not version:
+                if has_version:
+                    return row
+                best = best or row
+            elif not has_version:
+                return row
+        return best
+
+    @staticmethod
+    def _rekey(old: Finding, merged: dict[str, Any]) -> str:
+        if old.type is not FindingType.SOFTWARE:
+            return old.key
+        return software_key(str(merged.get("name", "")), merged.get("version"))
+
+    def _dedupe_software(self) -> None:
+        """One-off: older Cyberdeck keyed software by name, version *and* place, so PHP seen on
+        http and https was two findings. Merge them, keeping the oldest row (and its id)."""
+        rows = self._conn.execute(
+            "SELECT * FROM findings WHERE type = ? ORDER BY id", (FindingType.SOFTWARE.value,)
+        ).fetchall()
+        with self._conn:
+            for row in rows:
+                f = self._row_to_finding(row)
+                data = Software.model_validate(f.data).model_dump(mode="json")
+                f = f.model_copy(update={"data": data})
+                target = self._conn.execute(
+                    "SELECT * FROM findings WHERE type = ? AND key = ? AND id < ?",
+                    (
+                        FindingType.SOFTWARE.value,
+                        software_key(data["name"], data.get("version")),
+                        f.id,
+                    ),
+                ).fetchone() or self._software_match(f, before=f.id)
+                if target is None:
+                    self._conn.execute(
+                        "UPDATE findings SET key = ?, data = ? WHERE id = ?",
+                        (
+                            software_key(data["name"], data.get("version")),
+                            json.dumps(data, sort_keys=True),
+                            f.id,
+                        ),
+                    )
+                    continue
+                keep = self._row_to_finding(target)
+                merged, _ = merge_data(
+                    keep.data,
+                    data,
+                    old_confidence=keep.confidence,
+                    new_confidence=f.confidence,
+                    keep_first=Software.KEEP_FIRST,
+                )
+                self._conn.execute(
+                    "UPDATE findings SET key = ?, data = ?, confidence = ?, sources = ?, "
+                    "tags = ? WHERE id = ?",
+                    (
+                        self._rekey(keep, merged),
+                        json.dumps(merged, sort_keys=True),
+                        max(keep.confidence, f.confidence),
+                        json.dumps(_union(keep.sources, f.sources)),
+                        json.dumps(_union(keep.tags, f.tags)),
+                        keep.id,
+                    ),
+                )
+                self._conn.execute(
+                    "UPDATE finding_history SET finding_id = ? WHERE finding_id = ?",
+                    (keep.id, f.id),
+                )
+                self._conn.execute("DELETE FROM findings WHERE id = ?", (f.id,))
 
     # -- findings --------------------------------------------------------------------------
     @staticmethod
@@ -247,13 +348,19 @@ class Store:
         )
 
     def upsert(self, finding: Finding) -> UpsertResult:
-        """Insert a finding, or merge it into the existing one with the same (type, key)."""
+        """Insert a finding, or merge it into the existing one with the same (type, key).
+
+        Software also matches on name alone across "no version" and a version (see
+        :meth:`_software_match`), so a later hit without a version isn't a new finding.
+        """
         now = utcnow()
         with self._conn:
             row = self._conn.execute(
                 "SELECT * FROM findings WHERE type = ? AND key = ?",
                 (finding.type.value, finding.key),
             ).fetchone()
+            if row is None and finding.type is FindingType.SOFTWARE:
+                row = self._software_match(finding)
             if row is None:
                 cur = self._conn.execute(
                     "INSERT INTO findings (type, key, data, confidence, sources, tags, "
@@ -280,11 +387,13 @@ class Store:
                 finding.data,
                 old_confidence=old.confidence,
                 new_confidence=finding.confidence,
+                keep_first=PAYLOAD_TYPES[finding.type].KEEP_FIRST,
             )
+            new_key = self._rekey(old, merged)
             sources = _union(old.sources, finding.sources)
             tags = _union(old.tags, finding.tags)
             confidence = max(old.confidence, finding.confidence)
-            data_changed = merged != old.data
+            data_changed = merged != old.data or new_key != old.key
             if not data_changed and (sources, tags, confidence) == (
                 old.sources,
                 old.tags,
@@ -293,9 +402,10 @@ class Store:
                 return UpsertResult(old, created=False, data_changed=False)
 
             self._conn.execute(
-                "UPDATE findings SET data = ?, confidence = ?, sources = ?, tags = ?, "
+                "UPDATE findings SET key = ?, data = ?, confidence = ?, sources = ?, tags = ?, "
                 "updated_at = ? WHERE id = ?",
                 (
+                    new_key,
                     json.dumps(merged, sort_keys=True),
                     confidence,
                     json.dumps(sources),
@@ -319,6 +429,7 @@ class Store:
                 )
             stored = old.model_copy(
                 update={
+                    "key": new_key,
                     "data": merged,
                     "confidence": confidence,
                     "sources": sources,
@@ -483,7 +594,7 @@ class Store:
         with self._conn:
             self._conn.execute(
                 "UPDATE jobs SET status = ?, exit_code = ?, started_at = ?, ended_at = ?, "
-                "note = ?, pid = ? WHERE id = ?",
+                "note = ?, pid = ?, meta = ? WHERE id = ?",
                 (
                     job.status.value,
                     job.exit_code,
@@ -491,8 +602,17 @@ class Store:
                     job.ended_at.isoformat() if job.ended_at else None,
                     job.note,
                     job.pid,
+                    json.dumps(job.meta, sort_keys=True, default=str),
                     job.id,
                 ),
+            )
+
+    def set_job_meta(self, job_id: int, meta: dict[str, Any]) -> None:
+        """Replace only a job's meta (its runner, maybe in another process, owns the status)."""
+        with self._conn:
+            self._conn.execute(
+                "UPDATE jobs SET meta = ? WHERE id = ?",
+                (json.dumps(meta, sort_keys=True, default=str), job_id),
             )
 
     def get_job(self, job_id: int) -> Job | None:

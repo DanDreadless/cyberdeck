@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from rich.text import Text
+from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import VerticalScroll
@@ -12,8 +13,12 @@ from textual.screen import Screen
 from textual.widgets import Footer, Header, Static
 
 from cyberdeck.core import services
+from cyberdeck.core.models import JobStatus
 from cyberdeck.core.options import OptionError
+from cyberdeck.core.runner import CancelError, cancel_job
+from cyberdeck.core.termsafe import terminal_safe_text
 from cyberdeck.core.workspace import Workspace
+from cyberdeck.ui.tui.modals import ConfirmModal
 
 NEWLINE = chr(10)
 
@@ -23,6 +28,7 @@ class JobScreen(Screen[None]):
         Binding("e", "toggle_stream", "stdout/stderr"),
         Binding("p", "reparse", "Re-parse"),
         Binding("r", "rerun", "Run again"),
+        Binding("k", "kill", "Kill job"),
         Binding("escape", "back", "Back"),
     ]
 
@@ -34,6 +40,7 @@ class JobScreen(Screen[None]):
         self.job_id = job_id
         self.on_rerun = on_rerun  # opens the Run dialog for this job (set by the dashboard)
         self.show_err = False
+        self.running = False
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -44,10 +51,25 @@ class JobScreen(Screen[None]):
 
     def on_mount(self) -> None:
         self.fill()
+        self.set_interval(1.0, self._tick)
+
+    def _tick(self) -> None:
+        """Follow a running job's output; one last refresh once it ends."""
+        if self.running:
+            self.fill()
+
+    def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
+        if action == "kill":
+            return self.running
+        return True
 
     def fill(self) -> None:
         job, cmd, out, err = services.job_files(self.ws, self.job_id)
         self.title = f"Job #{job.id} {job.tool}"
+        was_running = self.running
+        self.running = job.status is JobStatus.RUNNING
+        if was_running != self.running:
+            self.refresh_bindings()
         head = Text()
         head.append(
             f"#{job.id} {job.tool}  {job.status.value}  origin={job.origin}\n", style="bold"
@@ -76,7 +98,13 @@ class JobScreen(Screen[None]):
         shown = "\n".join(lines[-2000:])
         cut = ", last 2000" if len(lines) > 2000 else ""
         prefix = f"--- {path.name} ({len(lines)} lines{cut}) ---\n"
-        self.query_one("#job-text", Static).update(Text(prefix + shown))
+        body_text = Text(prefix)
+        body_text.append_text(Text.from_ansi(terminal_safe_text(shown)))
+        scroll = self.query_one("#job-output", VerticalScroll)
+        at_end = scroll.is_vertical_scroll_end
+        self.query_one("#job-text", Static).update(body_text)
+        if at_end:
+            scroll.call_after_refresh(scroll.scroll_end, animate=False)
 
     def action_toggle_stream(self) -> None:
         self.show_err = not self.show_err
@@ -101,6 +129,34 @@ class JobScreen(Screen[None]):
             return
         self.app.pop_screen()
         self.on_rerun(self.job_id)
+
+    def action_kill(self) -> None:
+        if not self.running:
+            return
+
+        def answered(yes: bool | None) -> None:
+            if yes:
+                self._kill()
+
+        self.app.push_screen(
+            ConfirmModal(
+                f"Kill job #{self.job_id}?",
+                "The tool is stopped now. Output so far stays in raw/ and the job is marked"
+                " cancelled.",
+                yes="Kill",
+                no="Keep running",
+            ),
+            answered,
+        )
+
+    @work(thread=True, exclusive=True, group="kill")
+    def _kill(self) -> None:
+        try:
+            cancel_job(self.ws, self.job_id)
+        except CancelError as exc:
+            self.app.call_from_thread(self.notify, str(exc), severity="error")
+            return
+        self.app.call_from_thread(self.notify, f"Job #{self.job_id} killed")
 
     def action_back(self) -> None:
         self.app.pop_screen()

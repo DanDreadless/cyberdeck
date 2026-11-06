@@ -7,7 +7,7 @@ import pytest
 
 from cyberdeck.core.config import Settings
 from cyberdeck.core.models import JobStatus
-from cyberdeck.core.runner import JobRequest, Runner
+from cyberdeck.core.runner import CancelError, JobRequest, Runner, cancel_job
 from cyberdeck.core.scope import Scope, ScopeError, check_argv_scope
 
 from .conftest import make_ws
@@ -84,3 +84,32 @@ def test_check_argv_scope() -> None:
     for bad in (["http://8.8.8.8/"], ["--target=1.1.1.1"], ["10.0.0.0/8"], ["::1"]):
         with pytest.raises(ScopeError):
             check_argv_scope(bad, scope)
+
+
+async def test_cancel_job_kills_a_running_job(settings: Settings) -> None:
+    ws = make_ws(settings, "lantern", IP)
+    runner = Runner(ws, settings.scope())
+    task = asyncio.create_task(
+        runner.run(
+            JobRequest(
+                "slow",
+                _py("print('started', flush=True); import time; time.sleep(30)"),
+                IP,
+                ws.path,
+            )
+        )
+    )
+    for _ in range(50):
+        await asyncio.sleep(0.1)
+        with ws.store() as store:
+            jobs = store.jobs()
+        if jobs and jobs[0].meta.get("child_pid"):
+            break
+    job_id = jobs[0].id
+    await asyncio.to_thread(cancel_job, ws, job_id, grace=2.0)
+    result = await asyncio.wait_for(task, timeout=10)
+    assert result.job.status is JobStatus.CANCELLED and result.job.note == "killed"
+    with pytest.raises(CancelError, match="not running"):
+        cancel_job(ws, job_id)
+    with pytest.raises(CancelError, match="no job"):
+        cancel_job(ws, 999)

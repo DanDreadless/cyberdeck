@@ -35,6 +35,7 @@ from cyberdeck.core.options import OptionError, RunPlan
 from cyberdeck.core.runner import have_binary, is_root, sudo_cached, sudo_validate
 from cyberdeck.core.scope import ScopeError
 from cyberdeck.core.summarize import JobSummary
+from cyberdeck.core.termsafe import terminal_safe
 from cyberdeck.core.tools import SCAN_STAGES, all_tools, get_tool, parse_discovered, parse_progress
 from cyberdeck.core.userconfig import load_user_config
 from cyberdeck.core.workspace import Workspace, WorkspaceError
@@ -263,7 +264,11 @@ def _run_with_progress(
                 return
             if not is_nmap:
                 if line.strip():
-                    progress.console.print(f"  {line}", style="dim", markup=False, highlight=False)
+                    progress.console.print(
+                        Text("  ").append_text(Text.from_ansi(terminal_safe(line))),
+                        style="dim",
+                        highlight=False,
+                    )
                 return
             prog = parse_progress(line)
             if prog:

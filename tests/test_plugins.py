@@ -570,7 +570,8 @@ async def test_failed_job_still_parsed_and_parse_errors_noted(
     plan = services.plan_tool(lantern, "nikto", settings=settings)
     outcome = await services.execute_plan(lantern, settings, plan)
     assert not outcome.result.ok
-    assert outcome.parse_report and len(outcome.parse_report.created) == 2
+    # PHP/8.1.2 is named twice (header and 'outdated' line): one software finding
+    assert outcome.parse_report and len(outcome.parse_report.created) == 1
 
     monkeypatch.setenv("FAKE_TOOL_FIXTURE", str(TOOL_FIXTURES / "gobuster.txt"))
     monkeypatch.setattr(

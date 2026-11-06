@@ -48,6 +48,7 @@ from cyberdeck.core.options import OptionError, RunPlan, ToolSpec
 from cyberdeck.core.runner import is_root, sudo_cached, sudo_validate
 from cyberdeck.core.scope import ScopeError
 from cyberdeck.core.summarize import POSSIBLE_CREDENTIAL, JobSummary
+from cyberdeck.core.termsafe import terminal_safe
 from cyberdeck.core.tools import SCAN_STAGES, all_tools, get_tool
 from cyberdeck.core.userconfig import load_user_config, save_user_config
 from cyberdeck.core.workspace import Workspace
@@ -98,7 +99,8 @@ def finding_row(f: Finding, reveal: bool = False) -> Row:
     d = f.data
     found_by = ", ".join(f.sources[:2])
     if f.type is FindingType.SOFTWARE:
-        return [d["name"], d.get("version") or "?", d.get("where") or "", found_by]
+        seen = d.get("seen_at") or ([d["where"]] if d.get("where") else [])
+        return [d["name"], d.get("version") or "?", ", ".join(seen), found_by]
     if f.type is FindingType.HOSTNAME:
         return [
             d["fqdn"],
@@ -1080,7 +1082,9 @@ class DashboardScreen(Screen[None]):
 
         def on_line(stream: str, line: str) -> None:
             if line.strip():
-                log.write(Text(f"[{name}] {line}", style="red" if stream == "err" else ""))
+                text = Text(f"[{name}] ", style="red" if stream == "err" else "")
+                text.append_text(Text.from_ansi(terminal_safe(line)))
+                log.write(text)
 
         app = self.app if isinstance(self.app, CyberdeckApp) else None
         if app is not None:

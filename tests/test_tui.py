@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import sys
 from pathlib import Path
 from typing import Any
@@ -848,3 +849,36 @@ async def test_loot_edit_and_delete(lantern: Workspace, settings: Settings) -> N
         await pilot.pause()
         assert services.list_findings(lantern, FindingType.CREDENTIAL) == []
         assert "cred" not in [r[0] for r in _rows(table)]
+
+
+async def test_job_screen_kills_a_running_job(lantern: Workspace, settings: Settings) -> None:
+    from cyberdeck.core.models import JobStatus
+    from cyberdeck.core.runner import JobRequest, Runner
+
+    app = CyberdeckApp(settings, box=str(lantern.path))
+    async with app.run_test(size=SIZE) as pilot:
+        await _dashboard(app, pilot)
+        runner = Runner(lantern, settings.scope())
+        argv = [sys.executable, "-c", "print('working', flush=True); import time; time.sleep(30)"]
+        task = asyncio.create_task(runner.run(JobRequest("slow", argv, IP, lantern.path)))
+        for _ in range(50):
+            await pilot.pause(0.1)
+            jobs = services.list_jobs(lantern)
+            if jobs and jobs[0].meta.get("child_pid"):
+                break
+        job_id = jobs[0].id
+        app.push_screen(JobScreen(lantern, job_id))
+        await pilot.pause()
+        screen = app.screen
+        assert isinstance(screen, JobScreen) and screen.running
+        assert screen.check_action("kill", ())
+        await pilot.press("k")
+        await pilot.pause()
+        assert isinstance(app.screen, ConfirmModal)
+        await pilot.press("y")
+        await pilot.pause()
+        result = await asyncio.wait_for(task, timeout=10)
+        await app.workers.wait_for_complete()
+        assert result.job.status is JobStatus.CANCELLED
+        await pilot.pause(1.2)  # the screen follows the job and drops the k binding
+        assert not screen.running and not screen.check_action("kill", ())

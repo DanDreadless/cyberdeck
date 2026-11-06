@@ -18,7 +18,7 @@ from enum import StrEnum
 from ipaddress import ip_address
 from typing import Any, ClassVar, Literal, TypeVar
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class FindingType(StrEnum):
@@ -66,6 +66,9 @@ class Payload(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
     TYPE: ClassVar[FindingType]
+    # Fields where the first value seen stays put when the same finding turns up again
+    # (no conflict recorded). Software keeps its first ``where``; ``seen_at`` lists them all.
+    KEEP_FIRST: ClassVar[frozenset[str]] = frozenset()
 
     def natural_key(self) -> str:
         raise NotImplementedError
@@ -125,10 +128,25 @@ class Software(Payload):
     name: str
     version: str | None = None
     cpe: str | None = None
-    where: str | None = None  # "tcp/80", a URL, or a path
+    where: str | None = None  # first place it was seen: "tcp/80", a URL, or a path
+    seen_at: list[str] = Field(default_factory=list)  # every place it was seen, ``where`` first
+    KEEP_FIRST: ClassVar[frozenset[str]] = frozenset({"where"})
+
+    @model_validator(mode="after")
+    def _where_is_seen(self) -> Software:
+        if self.where and self.where not in self.seen_at:
+            self.seen_at.insert(0, self.where)
+        return self
 
     def natural_key(self) -> str:
-        return f"{self.name.lower()}@{self.version or '?'}@{self.where or ''}"
+        """One finding per product and version, wherever it shows up (PHP on http and https is
+        one entry with two ``seen_at`` places). See also ``Store.upsert``: a hit without a
+        version joins the versioned entry of the same name."""
+        return software_key(self.name, self.version)
+
+
+def software_key(name: str, version: str | None) -> str:
+    return f"{name.strip().lower()}@{(version or '').strip() or '?'}"
 
 
 HostKind = Literal["host", "domain"]
@@ -323,6 +341,7 @@ def merge_data(
     *,
     old_confidence: float,
     new_confidence: float,
+    keep_first: frozenset[str] = frozenset(),
 ) -> tuple[dict[str, Any], list[str]]:
     """Merge ``new`` into ``old``. Returns (merged, conflicting field names).
 
@@ -336,6 +355,8 @@ def merge_data(
     for key, new_value in new.items():
         old_value = old.get(key)
         if _is_empty(new_value) or new_value == old_value:
+            continue
+        if key in keep_first and not _is_empty(old_value):
             continue
         if _is_empty(old_value):
             merged[key] = new_value
