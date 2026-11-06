@@ -9,7 +9,6 @@
  \_____\__, |_.__/ \___|_|  \__,_|\___|\___|_|\_\
         __/ |
        |___/
-
 ```
 
 **A recon handler for Hack The Box, run from Kali Linux.**
@@ -49,17 +48,17 @@ does the bookkeeping and the "what next?" so you can focus on the box.
 
 ## Features
 
-| | |
+| Feature | What it does |
 |---|---|
-| 🛰️ **Guided recon** | New-box wizard, HTB VPN check, two-stage nmap (all ports, then scripts and versions on the open ones), automatic import. |
-| 🧩 **Tool plugins** | 45+ Kali tools described in YAML: web, SMB/AD, RPC, creds, forensics, exploit research. Add your own without writing Python. |
-| 🧠 **Next-step suggestions** | Rules turn findings into ranked next steps with a *why*. They cover fingerprinting a site, adding vhosts to `/etc/hosts` (diff shown first), fuzzing, SMB/AD enumeration and exploit lookups. |
-| 🗃️ **Per-box findings store** | Services, versions, hostnames, URLs, users, credentials, hashes and flags, each with where it came from. Secrets are masked in the UI. |
-| 🖥️ **TUI and browser UI** | A keyboard-driven Textual dashboard. `cyberdeck --web` serves the same UI in your browser. |
-| 🎓 **Learning aids** | Beginner layout with a journey bar, plain-English job summaries, a glossary, per-service checklists, a graded "I'm stuck" flow and a rabbit-hole timer. |
-| 📓 **Journal and write-ups** | The box's story builds itself from what you did. Draft a write-up (loot and your paths masked), then read and edit it in the app. |
-| 🤖 **Claude Code over MCP** | `cyberdeck mcp` lets Claude Code read findings, preview commands and run safe tools. Anything riskier waits for your approval. |
-| 🌆 **Cyberpunk themes** | Five neon palettes plus every Textual theme. `ctrl+t` switches theme from any screen, with live preview. |
+| **Guided recon** | New-box wizard, HTB VPN check, two-stage nmap (all ports, then scripts and versions on the open ones), automatic import. |
+| **Tool plugins** | 45+ Kali tools described in YAML: web, SMB/AD, RPC, creds, forensics, exploit research. Add your own without writing Python. |
+| **Next-step suggestions** | Rules turn findings into ranked next steps with a *why*. They cover fingerprinting a site, adding vhosts to `/etc/hosts` (diff shown first), fuzzing, SMB/AD enumeration and exploit lookups. |
+| **Per-box findings store** | Services, versions, hostnames, URLs, users, credentials, hashes and flags, each with where it came from. Secrets are masked in the UI. |
+| **TUI and browser UI** | A keyboard-driven Textual dashboard. `cyberdeck --web` serves the same UI in your browser. |
+| **Learning aids** | Beginner layout with a journey bar, plain-English job summaries, a glossary, per-service checklists, a graded "I'm stuck" flow and a rabbit-hole timer. |
+| **Journal and write-ups** | The box's story builds itself from what you did. Draft a write-up (loot and your paths masked), then read and edit it in the app. |
+| **Claude Code over MCP** | `cyberdeck mcp` lets Claude Code read findings, preview commands and run safe tools. Anything riskier waits for your approval. |
+| **Cyberpunk themes** | Five neon palettes plus every Textual theme. `ctrl+t` switches theme from any screen, with live preview. |
 
 <div align="center">
 
